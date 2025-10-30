@@ -1,4 +1,4 @@
-# ProyectoIntegrador - Práctica 2.1
+# ProyectoIntegrador
 
 Sistema de gestión con backend y frontend desarrollado como parte de la práctica académica.
 
