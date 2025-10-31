@@ -1,0 +1,3 @@
+"""
+Utilidades de la aplicación
+"""

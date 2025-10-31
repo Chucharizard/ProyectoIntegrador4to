@@ -1,0 +1,38 @@
+# --- Archivos generales ---
+*.md
+*.log
+*.env
+.DS_Store
+.vscode/
+.idea/
+
+# --- Node / JavaScript ---
+node_modules/
+dist/
+build/
+.cache/
+.next/
+out/
+.npm/
+.yarn/
+
+# --- Python / FastAPI ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env/
+venv/
+.env.*
+*.sqlite3
+
+# --- React Native ---
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# --- Otros ---
+coverage/
+tmp/
+
