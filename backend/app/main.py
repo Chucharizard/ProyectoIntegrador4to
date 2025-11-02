@@ -4,7 +4,7 @@ Punto de entrada de la aplicación FastAPI
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routes import usuarios, empleados
+from app.routes import usuarios, empleados, propietarios
 
 settings = get_settings()
 
@@ -29,6 +29,7 @@ app.add_middleware(
 # Incluir routers
 app.include_router(usuarios.router, prefix="/api", tags=["Usuarios"])
 app.include_router(empleados.router, prefix="/api", tags=["Empleados"])
+app.include_router(propietarios.router, prefix="/api", tags=["Propietarios"])
 
 
 @app.get("/")
