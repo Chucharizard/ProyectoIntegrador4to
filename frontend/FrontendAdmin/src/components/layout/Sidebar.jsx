@@ -43,6 +43,12 @@ const Sidebar = () => {
       roles: [1], // Solo Broker
     },
     {
+      name: 'Usuarios',
+      path: '/usuarios',
+      icon: ShieldCheckIcon,
+      roles: [1], // Solo Broker
+    },
+    {
       name: 'Roles',
       path: '/roles',
       icon: ShieldCheckIcon,

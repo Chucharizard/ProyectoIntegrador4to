@@ -1,6 +1,6 @@
 import axiosInstance from '../api/axios';
 
-const BASE_URL = '/clientes';  // Sin /api porque ya está en baseURL de axios
+const BASE_URL = '/clientes/';  // Sin /api porque ya está en baseURL de axios
 
 export const clienteService = {
   // Obtener todos los clientes

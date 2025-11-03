@@ -7,6 +7,10 @@ import Dashboard from './pages/Dashboard';
 import Layout from './components/layout/Layout';
 import ClientesList from './pages/clientes/ClientesList';
 import ClienteForm from './pages/clientes/ClienteForm';
+import EmpleadosList from './pages/empleados/EmpleadosList';
+import EmpleadoForm from './pages/empleados/EmpleadoForm';
+import UsuariosList from './pages/usuarios/UsuariosList';
+import UsuarioForm from './pages/usuarios/UsuarioForm';
 
 function App() {
   return (
@@ -51,20 +55,58 @@ function App() {
             }
           />
           
-          {/* Placeholder para futuras rutas */}
+          {/* Rutas de Empleados */}
           <Route
             path="/empleados"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Módulo Empleados</h2>
-                    <p className="text-gray-600 mt-2">Próximamente...</p>
-                  </div>
-                </Layout>
+                <EmpleadosList />
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/empleados/nuevo"
+            element={
+              <ProtectedRoute>
+                <EmpleadoForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleados/editar/:ci"
+            element={
+              <ProtectedRoute>
+                <EmpleadoForm />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Rutas de Usuarios */}
+          <Route
+            path="/usuarios"
+            element={
+              <ProtectedRoute>
+                <UsuariosList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios/nuevo"
+            element={
+              <ProtectedRoute>
+                <UsuarioForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios/editar/:ci"
+            element={
+              <ProtectedRoute>
+                <UsuarioForm />
+              </ProtectedRoute>
+            }
+          />
+          
           <Route
             path="/roles"
             element={
