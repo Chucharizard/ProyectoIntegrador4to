@@ -18,9 +18,9 @@ export const authService = {
     return response.data;
   },
 
-  // Obtener usuario actual
-  getCurrentUser: async () => {
-    const response = await axiosInstance.get(API_ENDPOINTS.ME);
+  // ✅ Obtener usuario actual CON signal
+  getCurrentUser: async (signal) => {
+    const response = await axiosInstance.get(API_ENDPOINTS.ME, { signal });
     return response.data;
   },
 

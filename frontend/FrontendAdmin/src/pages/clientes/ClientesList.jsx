@@ -17,49 +17,68 @@ const ClientesList = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredClientes, setFilteredClientes] = useState([]);
 
-  // Cargar clientes al montar el componente
+  // ✅ Un solo useEffect con AbortController
   useEffect(() => {
-    loadClientes();
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await clienteService.getAll(controller.signal);
+        
+        if (isMounted) {
+          setClientes(data);
+        }
+      } catch (error) {
+        if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
+          console.log('Petición cancelada');
+          return;
+        }
+
+        if (isMounted) {
+          console.error('Error al cargar clientes:', error);
+          toast.error('Error al cargar la lista de clientes');
+          setClientes([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, []);
 
-  // Filtrar clientes cuando cambia el término de búsqueda
-  useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredClientes(clientes);
-    } else {
-      const filtered = clientes.filter(
-        (cliente) =>
-          cliente.nombres_completo_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cliente.apellidos_completo_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cliente.ci_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          cliente.telefono_cliente?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredClientes(filtered);
-    }
-  }, [searchTerm, clientes]);
-
-  const loadClientes = async () => {
-    try {
-      setLoading(true);
-      const data = await clienteService.getAll();
-      setClientes(data);
-      setFilteredClientes(data);
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-      toast.error('Error al cargar la lista de clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ Filtrado derivado - no necesita useEffect separado
+  const filteredClientes = clientes.filter((cliente) => {
+    if (!searchTerm.trim()) return true;
+    
+    const term = searchTerm.toLowerCase();
+    return (
+      cliente.nombres_completo_cliente?.toLowerCase().includes(term) ||
+      cliente.apellidos_completo_cliente?.toLowerCase().includes(term) ||
+      cliente.ci_cliente?.toLowerCase().includes(term) ||
+      cliente.telefono_cliente?.toLowerCase().includes(term)
+    );
+  });
 
   const handleDelete = async (ci, nombre) => {
     if (window.confirm(`¿Estás seguro de eliminar al cliente ${nombre}?`)) {
       try {
         await clienteService.delete(ci);
         toast.success('Cliente eliminado correctamente');
-        loadClientes();
+        
+        // ✅ Solo recargar sin signal (no hay componente desmontado aquí)
+        const data = await clienteService.getAll();
+        setClientes(data);
       } catch (error) {
         console.error('Error al eliminar cliente:', error);
         toast.error('Error al eliminar el cliente');
@@ -82,6 +101,13 @@ const ClientesList = () => {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  // ✅ Stats calculados dinámicamente
+  const stats = {
+    total: clientes.length,
+    filtered: filteredClientes.length,
+    conPresupuesto: clientes.filter((c) => c.presupuesto_max_cliente).length,
   };
 
   return (
@@ -238,19 +264,19 @@ const ClientesList = () => {
           <div className="bg-white rounded-lg shadow-md p-4">
             <div className="text-sm text-gray-600">Total Clientes</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
-              {clientes.length}
+              {stats.total}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4">
             <div className="text-sm text-gray-600">Resultados de Búsqueda</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
-              {filteredClientes.length}
+              {stats.filtered}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4">
             <div className="text-sm text-gray-600">Con Presupuesto Definido</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
-              {clientes.filter((c) => c.presupuesto_max_cliente).length}
+              {stats.conPresupuesto}
             </div>
           </div>
         </div>

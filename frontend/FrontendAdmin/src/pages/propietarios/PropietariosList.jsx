@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usuarioService } from '../../services/usuarioService';
-import { rolService } from '../../services/rolService';
+import { propietarioService } from '../../services/propietarioService';
 import Layout from '../../components/layout/Layout';
 import { 
   PencilIcon, 
   TrashIcon, 
   PlusIcon,
   MagnifyingGlassIcon,
-  UserIcon,
+  UserGroupIcon,
   CheckCircleIcon,
-  XCircleIcon,
-  ShieldCheckIcon
+  XCircleIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-const UsuariosList = () => {
-  const [usuarios, setUsuarios] = useState([]);
-  const [roles, setRoles] = useState([]);
+const PropietariosList = () => {
+  const [propietarios, setPropietarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
@@ -29,27 +26,21 @@ const UsuariosList = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        const [usuariosData, rolesData] = await Promise.all([
-          usuarioService.getAll(controller.signal),
-          rolService.getAll(controller.signal)
-        ]);
+        const data = await propietarioService.getAll(controller.signal);
         
         if (isMounted) {
-          setUsuarios(usuariosData);
-          setRoles(rolesData);
+          setPropietarios(data);
         }
       } catch (error) {
         if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
-          console.log('Peticiones canceladas');
+          console.log('Petición cancelada');
           return;
         }
         
         if (isMounted) {
-          console.error('Error loading data:', error);
-          toast.error('Error al cargar datos');
-          setUsuarios([]);
-          setRoles([]);
+          console.error('Error loading propietarios:', error);
+          toast.error('Error al cargar propietarios');
+          setPropietarios([]);
         }
       } finally {
         if (isMounted) {
@@ -66,41 +57,38 @@ const UsuariosList = () => {
     };
   }, []);
 
-  // ✅ handleDelete ahora usa id_usuario (UUID)
-  const handleDelete = async (id_usuario) => {
-    if (window.confirm('¿Estás seguro de eliminar este usuario? Esta acción eliminará sus credenciales de acceso.')) {
+  const handleDelete = async (ci) => {
+    if (window.confirm('¿Estás seguro de eliminar este propietario?')) {
       try {
-        await usuarioService.delete(id_usuario);
-        toast.success('Usuario eliminado exitosamente');
+        await propietarioService.delete(ci);
+        toast.success('Propietario eliminado exitosamente');
         
-        const usuariosData = await usuarioService.getAll();
-        setUsuarios(usuariosData);
+        // Recargar lista
+        const data = await propietarioService.getAll();
+        setPropietarios(data);
       } catch (error) {
-        console.error('Error deleting usuario:', error);
-        toast.error('Error al eliminar usuario');
+        console.error('Error deleting propietario:', error);
+        toast.error('Error al eliminar propietario');
       }
     }
   };
 
-  const getRoleName = (idRol) => {
-    const rol = roles.find(r => r.id_rol === idRol);
-    return rol ? rol.nombre_rol : 'Sin rol';
-  };
-
-  const filteredUsuarios = usuarios.filter(user => {
-    if (!user) return false;
+  const filteredPropietarios = propietarios.filter(prop => {
+    if (!prop) return false;
     const term = searchTerm.toLowerCase();
     return (
-      (user.ci_empleado || '').toLowerCase().includes(term) ||
-      (user.nombre_usuario || '').toLowerCase().includes(term)
+      (prop.ci_propietario || '').toLowerCase().includes(term) ||
+      (prop.nombres_completo_propietario || '').toLowerCase().includes(term) ||
+      (prop.apellidos_completo_propietario || '').toLowerCase().includes(term) ||
+      (prop.correo_electronico_propietario || '').toLowerCase().includes(term)
     );
   });
 
   const stats = {
-    total: usuarios.length,
-    filtered: filteredUsuarios.length,
-    activos: usuarios.filter(u => u.es_activo_usuario).length,
-    inactivos: usuarios.filter(u => !u.es_activo_usuario).length
+    total: propietarios.length,
+    filtered: filteredPropietarios.length,
+    activos: propietarios.filter(p => p.es_activo_propietario).length,
+    inactivos: propietarios.filter(p => !p.es_activo_propietario).length
   };
 
   if (loading) {
@@ -119,15 +107,15 @@ const UsuariosList = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
-            <p className="text-gray-600 mt-1">Gestiona las credenciales de acceso al sistema</p>
+            <h1 className="text-3xl font-bold text-gray-900">Propietarios</h1>
+            <p className="text-gray-600 mt-1">Gestiona la información de los propietarios de inmuebles</p>
           </div>
           <button
-            onClick={() => navigate('/usuarios/nuevo')}
+            onClick={() => navigate('/propietarios/nuevo')}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <PlusIcon className="h-5 w-5" />
-            Nuevo Usuario
+            Nuevo Propietario
           </button>
         </div>
 
@@ -139,7 +127,7 @@ const UsuariosList = () => {
                 <p className="text-sm text-gray-600">Total</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <UserIcon className="h-10 w-10 text-blue-500" />
+              <UserGroupIcon className="h-10 w-10 text-blue-500" />
             </div>
           </div>
 
@@ -180,7 +168,7 @@ const UsuariosList = () => {
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar por CI empleado o nombre de usuario..."
+              placeholder="Buscar por CI, nombre, apellido o correo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -195,13 +183,19 @@ const UsuariosList = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CI Empleado
+                    CI
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nombre de Usuario
+                    Nombres
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rol
+                    Apellidos
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Teléfono
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Correo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
@@ -212,31 +206,32 @@ const UsuariosList = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsuarios.length === 0 ? (
+                {filteredPropietarios.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                      No se encontraron usuarios
+                    <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      No se encontraron propietarios
                     </td>
                   </tr>
                 ) : (
-                  filteredUsuarios.map((usuario) => (
-                    <tr key={usuario.id_usuario} className="hover:bg-gray-50">
+                  filteredPropietarios.map((propietario) => (
+                    <tr key={propietario.ci_propietario} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {usuario.ci_empleado}
+                        {propietario.ci_propietario}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheckIcon className="h-5 w-5 text-blue-500" />
-                          {usuario.nombre_usuario}
-                        </div>
+                        {propietario.nombres_completo_propietario}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {propietario.apellidos_completo_propietario}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {propietario.telefono_propietario}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {propietario.correo_electronico_propietario}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {getRoleName(usuario.id_rol)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {usuario.es_activo_usuario ? (
+                        {propietario.es_activo_propietario ? (
                           <span className="flex items-center gap-1 text-green-600">
                             <CheckCircleIcon className="h-5 w-5" />
                             Activo
@@ -250,16 +245,15 @@ const UsuariosList = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          {/* ✅ Ahora usa id_usuario (UUID) */}
                           <button
-                            onClick={() => navigate(`/usuarios/editar/${usuario.id_usuario}`)}
+                            onClick={() => navigate(`/propietarios/editar/${propietario.ci_propietario}`)}
                             className="text-blue-600 hover:text-blue-900"
                             title="Editar"
                           >
                             <PencilIcon className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(usuario.id_usuario)}
+                            onClick={() => handleDelete(propietario.ci_propietario)}
                             className="text-red-600 hover:text-red-900"
                             title="Eliminar"
                           >
@@ -279,4 +273,4 @@ const UsuariosList = () => {
   );
 };
 
-export default UsuariosList;
+export default PropietariosList;

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { empleadoService } from '../../services/empleadoService';
-import { rolService } from '../../services/rolService';
 import Layout from '../../components/layout/Layout';
 import { 
   PencilIcon, 
@@ -16,73 +15,62 @@ import toast from 'react-hot-toast';
 
 const EmpleadosList = () => {
   const [empleados, setEmpleados] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const controller = new AbortController();
+    let isMounted = true;
     
     const fetchData = async () => {
-      await loadEmpleados();
-      await loadRoles();
+      try {
+        setLoading(true);
+        
+        const empleadosData = await empleadoService.getAll(controller.signal);
+        
+        if (isMounted) {
+          setEmpleados(empleadosData);
+        }
+      } catch (error) {
+        if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
+          console.log('Peticiones canceladas');
+          return;
+        }
+        
+        if (isMounted) {
+          console.error('Error loading data:', error);
+          toast.error('Error al cargar datos');
+          setEmpleados([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
     
     fetchData();
     
     return () => {
-      controller.abort(); // Cancelar peticiones pendientes al desmontar
+      isMounted = false;
+      controller.abort();
     };
   }, []);
-
-  const loadEmpleados = async () => {
-    try {
-      setLoading(true);
-      const data = await empleadoService.getAll();
-      setEmpleados(data);
-    } catch (error) {
-      // Ignorar errores de cancelación
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
-        return;
-      }
-      console.error('Error loading empleados:', error);
-      toast.error('Error al cargar empleados');
-      setEmpleados([]); // Evitar que se rompa la UI
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRoles = async () => {
-    try {
-      const data = await rolService.getAll();
-      setRoles(data);
-    } catch (error) {
-      // Ignorar errores de cancelación
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
-        return;
-      }
-      console.error('Error loading roles:', error);
-    }
-  };
 
   const handleDelete = async (ci) => {
     if (window.confirm('¿Estás seguro de eliminar este empleado?')) {
       try {
         await empleadoService.delete(ci);
         toast.success('Empleado eliminado exitosamente');
-        loadEmpleados();
+        
+        const empleadosData = await empleadoService.getAll();
+        setEmpleados(empleadosData);
       } catch (error) {
         console.error('Error deleting empleado:', error);
         toast.error('Error al eliminar empleado');
       }
     }
-  };
-
-  const getRoleName = (idRol) => {
-    const rol = roles.find(r => r.id_rol === idRol);
-    return rol ? rol.nombre_rol : 'Sin rol';
   };
 
   const filteredEmpleados = empleados.filter(emp => {
@@ -210,9 +198,6 @@ const EmpleadosList = () => {
                     Correo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rol
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -223,7 +208,7 @@ const EmpleadosList = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredEmpleados.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                       No se encontraron empleados
                     </td>
                   </tr>
@@ -244,11 +229,6 @@ const EmpleadosList = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {empleado.correo_electronico_empleado}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {getRoleName(empleado.id_rol)}
-                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {empleado.es_activo_empleado ? (

@@ -22,35 +22,54 @@ const ClienteForm = () => {
     origen_cliente: '',
   });
 
-  // Cargar datos del cliente si estamos editando
+  // ✅ useEffect optimizado con AbortController
   useEffect(() => {
-    if (isEditing) {
-      loadCliente();
-    }
-  }, [ci]);
+    if (!isEditing) return;
 
-  const loadCliente = async () => {
-    try {
-      setLoading(true);
-      const data = await clienteService.getById(ci);
-      setFormData({
-        ci_cliente: data.ci_cliente || '',
-        nombres_completo_cliente: data.nombres_completo_cliente || '',
-        apellidos_completo_cliente: data.apellidos_completo_cliente || '',
-        telefono_cliente: data.telefono_cliente || '',
-        correo_electronico_cliente: data.correo_electronico_cliente || '',
-        preferencia_zona_cliente: data.preferencia_zona_cliente || '',
-        presupuesto_max_cliente: data.presupuesto_max_cliente || '',
-        origen_cliente: data.origen_cliente || '',
-      });
-    } catch (error) {
-      console.error('Error al cargar cliente:', error);
-      toast.error('Error al cargar los datos del cliente');
-      navigate('/clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const loadCliente = async () => {
+      try {
+        setLoading(true);
+        const data = await clienteService.getById(ci, controller.signal);
+        
+        if (isMounted) {
+          setFormData({
+            ci_cliente: data.ci_cliente || '',
+            nombres_completo_cliente: data.nombres_completo_cliente || '',
+            apellidos_completo_cliente: data.apellidos_completo_cliente || '',
+            telefono_cliente: data.telefono_cliente || '',
+            correo_electronico_cliente: data.correo_electronico_cliente || '',
+            preferencia_zona_cliente: data.preferencia_zona_cliente || '',
+            presupuesto_max_cliente: data.presupuesto_max_cliente || '',
+            origen_cliente: data.origen_cliente || '',
+          });
+        }
+      } catch (error) {
+        if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
+          return;
+        }
+
+        if (isMounted) {
+          console.error('Error al cargar cliente:', error);
+          toast.error('Error al cargar los datos del cliente');
+          navigate('/clientes');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCliente();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [ci, isEditing, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

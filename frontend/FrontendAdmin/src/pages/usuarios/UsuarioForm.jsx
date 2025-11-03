@@ -8,9 +8,10 @@ import { ArrowLeftIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outlin
 import toast from 'react-hot-toast';
 
 const UsuarioForm = () => {
-  const { ci } = useParams();
+  // ✅ Ahora usa id_usuario en lugar de ci
+  const { id_usuario } = useParams();
   const navigate = useNavigate();
-  const isEditMode = Boolean(ci);
+  const isEditMode = Boolean(id_usuario);
 
   const [roles, setRoles] = useState([]);
   const [empleados, setEmpleados] = useState([]);
@@ -25,53 +26,65 @@ const UsuarioForm = () => {
   });
 
   useEffect(() => {
-    loadRoles();
-    loadEmpleados();
-    if (isEditMode) {
-      loadUsuario();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ci]);
+    const controller = new AbortController();
+    let isMounted = true;
 
-  const loadRoles = async () => {
-    try {
-      const data = await rolService.getAll();
-      setRoles(data);
-    } catch (error) {
-      console.error('Error loading roles:', error);
-      toast.error('Error al cargar roles');
-    }
-  };
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Cargar roles y empleados en paralelo CON signal
+        const [rolesData, empleadosData] = await Promise.all([
+          rolService.getAll(controller.signal),
+          empleadoService.getAll(controller.signal)
+        ]);
 
-  const loadEmpleados = async () => {
-    try {
-      const data = await empleadoService.getAll();
-      setEmpleados(data);
-    } catch (error) {
-      console.error('Error loading empleados:', error);
-      toast.error('Error al cargar empleados');
-    }
-  };
+        if (isMounted) {
+          setRoles(rolesData);
+          setEmpleados(empleadosData);
+        }
 
-  const loadUsuario = async () => {
-    try {
-      setLoading(true);
-      const data = await usuarioService.getById(ci);
-      setFormData({
-        ci_empleado: data.ci_empleado,
-        nombre_usuario: data.nombre_usuario,
-        contrasenia_usuario: '', // No mostrar la contraseña actual
-        id_rol: data.id_rol,
-        es_activo_usuario: data.es_activo_usuario
-      });
-    } catch (error) {
-      console.error('Error loading usuario:', error);
-      toast.error('Error al cargar usuario');
-      navigate('/usuarios');
-    } finally {
-      setLoading(false);
-    }
-  };
+        // ✅ Si es modo edición, cargar el usuario por UUID
+        if (isEditMode && isMounted) {
+          const usuarioData = await usuarioService.getById(id_usuario, controller.signal);
+          
+          if (isMounted) {
+            setFormData({
+              ci_empleado: usuarioData.ci_empleado,
+              nombre_usuario: usuarioData.nombre_usuario,
+              contrasenia_usuario: '',
+              id_rol: usuarioData.id_rol,
+              es_activo_usuario: usuarioData.es_activo_usuario
+            });
+          }
+        }
+      } catch (error) {
+        if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
+          console.log('Peticiones canceladas');
+          return;
+        }
+
+        if (isMounted) {
+          console.error('Error loading data:', error);
+          toast.error('Error al cargar datos');
+          if (isEditMode) {
+            navigate('/usuarios');
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [id_usuario, isEditMode, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -135,7 +148,8 @@ const UsuarioForm = () => {
       }
 
       if (isEditMode) {
-        await usuarioService.update(ci, dataToSend);
+        // ✅ Actualizar usando UUID
+        await usuarioService.update(id_usuario, dataToSend);
         toast.success('Usuario actualizado exitosamente');
       } else {
         await usuarioService.create(dataToSend);

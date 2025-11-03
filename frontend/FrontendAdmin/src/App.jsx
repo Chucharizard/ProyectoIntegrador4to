@@ -11,6 +11,8 @@ import EmpleadosList from './pages/empleados/EmpleadosList';
 import EmpleadoForm from './pages/empleados/EmpleadoForm';
 import UsuariosList from './pages/usuarios/UsuariosList';
 import UsuarioForm from './pages/usuarios/UsuarioForm';
+import PropietariosList from './pages/propietarios/PropietariosList';
+import PropietarioForm from './pages/propietarios/PropietarioForm';
 
 function App() {
   return (
@@ -42,10 +44,8 @@ function App() {
         />
         
         <Routes>
-          {/* Ruta pública */}
           <Route path="/login" element={<Login />} />
           
-          {/* Rutas protegidas */}
           <Route
             path="/dashboard"
             element={
@@ -81,7 +81,7 @@ function App() {
             }
           />
           
-          {/* Rutas de Usuarios */}
+          {/* ✅ Rutas de Usuarios - Ahora usan UUID */}
           <Route
             path="/usuarios"
             element={
@@ -99,7 +99,7 @@ function App() {
             }
           />
           <Route
-            path="/usuarios/editar/:ci"
+            path="/usuarios/editar/:id_usuario"
             element={
               <ProtectedRoute>
                 <UsuarioForm />
@@ -144,16 +144,28 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Rutas de Propietarios */}
           <Route
             path="/propietarios"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Módulo Propietarios</h2>
-                    <p className="text-gray-600 mt-2">Próximamente...</p>
-                  </div>
-                </Layout>
+                <PropietariosList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propietarios/nuevo"
+            element={
+              <ProtectedRoute>
+                <PropietarioForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propietarios/editar/:ci"
+            element={
+              <ProtectedRoute>
+                <PropietarioForm />
               </ProtectedRoute>
             }
           />
@@ -197,7 +209,6 @@ function App() {
             }
           />
           
-          {/* Redirect a dashboard por defecto */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { empleadoService } from '../../services/empleadoService';
-import { rolService } from '../../services/rolService';
 import Layout from '../../components/layout/Layout';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
@@ -11,59 +10,71 @@ const EmpleadoForm = () => {
   const navigate = useNavigate();
   const isEditMode = Boolean(ci);
 
-  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     ci_empleado: '',
     nombres_completo_empleado: '',
     apellidos_completo_empleado: '',
     fecha_nacimiento_empleado: '',
+    direccion_empleado: '',
     telefono_empleado: '',
     correo_electronico_empleado: '',
-    id_rol: '',
+    fecha_contratacion_empleado: '',
     es_activo_empleado: true
   });
 
   useEffect(() => {
-    loadRoles();
-    if (isEditMode) {
-      loadEmpleado();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ci]);
+    const controller = new AbortController();
+    let isMounted = true;
 
-  const loadRoles = async () => {
-    try {
-      const data = await rolService.getAll();
-      setRoles(data);
-    } catch (error) {
-      console.error('Error loading roles:', error);
-      toast.error('Error al cargar roles');
-    }
-  };
+    const fetchData = async () => {
+      if (!isEditMode) {
+        setLoading(false);
+        return;
+      }
 
-  const loadEmpleado = async () => {
-    try {
-      setLoading(true);
-      const data = await empleadoService.getById(ci);
-      setFormData({
-        ci_empleado: data.ci_empleado,
-        nombres_completo_empleado: data.nombres_completo_empleado,
-        apellidos_completo_empleado: data.apellidos_completo_empleado,
-        fecha_nacimiento_empleado: data.fecha_nacimiento_empleado,
-        telefono_empleado: data.telefono_empleado,
-        correo_electronico_empleado: data.correo_electronico_empleado,
-        id_rol: data.id_rol,
-        es_activo_empleado: data.es_activo_empleado
-      });
-    } catch (error) {
-      console.error('Error loading empleado:', error);
-      toast.error('Error al cargar empleado');
-      navigate('/empleados');
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        setLoading(true);
+        const empleadoData = await empleadoService.getById(ci, controller.signal);
+        
+        if (isMounted) {
+          setFormData({
+            ci_empleado: empleadoData.ci_empleado,
+            nombres_completo_empleado: empleadoData.nombres_completo_empleado,
+            apellidos_completo_empleado: empleadoData.apellidos_completo_empleado,
+            fecha_nacimiento_empleado: empleadoData.fecha_nacimiento_empleado,
+            direccion_empleado: empleadoData.direccion_empleado || '',
+            telefono_empleado: empleadoData.telefono_empleado,
+            correo_electronico_empleado: empleadoData.correo_electronico_empleado || '',
+            fecha_contratacion_empleado: empleadoData.fecha_contratacion_empleado,
+            es_activo_empleado: empleadoData.es_activo_empleado
+          });
+        }
+      } catch (error) {
+        if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
+          console.log('Petición cancelada');
+          return;
+        }
+
+        if (isMounted) {
+          console.error('Error loading data:', error);
+          toast.error('Error al cargar datos del empleado');
+          navigate('/empleados');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [ci, isEditMode, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -75,7 +86,7 @@ const EmpleadoForm = () => {
 
   const validateForm = () => {
     if (!formData.ci_empleado.trim()) {
-      toast.error('La CI es obligatoria');
+      toast.error('El CI es obligatorio');
       return false;
     }
     if (!formData.nombres_completo_empleado.trim()) {
@@ -94,19 +105,8 @@ const EmpleadoForm = () => {
       toast.error('El teléfono es obligatorio');
       return false;
     }
-    if (!formData.correo_electronico_empleado.trim()) {
-      toast.error('El correo electrónico es obligatorio');
-      return false;
-    }
-    if (!formData.id_rol) {
-      toast.error('El rol es obligatorio');
-      return false;
-    }
-
-    // Validar formato de correo
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.correo_electronico_empleado)) {
-      toast.error('El formato del correo electrónico no es válido');
+    if (!formData.fecha_contratacion_empleado) {
+      toast.error('La fecha de contratación es obligatoria');
       return false;
     }
 
@@ -123,17 +123,11 @@ const EmpleadoForm = () => {
     try {
       setLoading(true);
 
-      // Convertir id_rol a número
-      const dataToSend = {
-        ...formData,
-        id_rol: parseInt(formData.id_rol)
-      };
-
       if (isEditMode) {
-        await empleadoService.update(ci, dataToSend);
+        await empleadoService.update(ci, formData);
         toast.success('Empleado actualizado exitosamente');
       } else {
-        await empleadoService.create(dataToSend);
+        await empleadoService.create(formData);
         toast.success('Empleado creado exitosamente');
       }
 
@@ -176,9 +170,20 @@ const EmpleadoForm = () => {
             {isEditMode ? 'Editar Empleado' : 'Nuevo Empleado'}
           </h1>
           <p className="text-gray-600 mt-1">
-            {isEditMode ? 'Actualiza la información del empleado' : 'Completa el formulario para agregar un nuevo empleado'}
+            {isEditMode 
+              ? 'Actualiza la información del empleado' 
+              : 'Registra un nuevo empleado en el sistema'}
           </p>
         </div>
+
+        {/* Info Box */}
+        {!isEditMode && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              <strong>📌 Nota:</strong> Después de crear el empleado, podrás crear sus credenciales de acceso en el módulo de Usuarios.
+            </p>
+          </div>
+        )}
 
         {/* Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -198,17 +203,17 @@ const EmpleadoForm = () => {
                 className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
-                placeholder="Ej: 12345678"
+                placeholder="12345678"
               />
               {isEditMode && (
-                <p className="text-sm text-gray-500 mt-1">La CI no se puede modificar</p>
+                <p className="text-sm text-gray-500 mt-1">El CI no se puede modificar</p>
               )}
             </div>
 
             {/* Nombres */}
             <div>
               <label htmlFor="nombres_completo_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-                Nombres <span className="text-red-500">*</span>
+                Nombres Completos <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -217,14 +222,14 @@ const EmpleadoForm = () => {
                 value={formData.nombres_completo_empleado}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: Juan Carlos"
+                placeholder="Juan Carlos"
               />
             </div>
 
             {/* Apellidos */}
             <div>
               <label htmlFor="apellidos_completo_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-                Apellidos <span className="text-red-500">*</span>
+                Apellidos Completos <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -233,7 +238,7 @@ const EmpleadoForm = () => {
                 value={formData.apellidos_completo_empleado}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: Pérez González"
+                placeholder="Pérez García"
               />
             </div>
 
@@ -252,6 +257,22 @@ const EmpleadoForm = () => {
               />
             </div>
 
+            {/* Dirección */}
+            <div>
+              <label htmlFor="direccion_empleado" className="block text-sm font-medium text-gray-700 mb-1">
+                Dirección
+              </label>
+              <input
+                type="text"
+                id="direccion_empleado"
+                name="direccion_empleado"
+                value={formData.direccion_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Av. Principal #123"
+              />
+            </div>
+
             {/* Teléfono */}
             <div>
               <label htmlFor="telefono_empleado" className="block text-sm font-medium text-gray-700 mb-1">
@@ -264,14 +285,14 @@ const EmpleadoForm = () => {
                 value={formData.telefono_empleado}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 099123456"
+                placeholder="70123456"
               />
             </div>
 
-            {/* Correo Electrónico */}
+            {/* Correo */}
             <div>
               <label htmlFor="correo_electronico_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-                Correo Electrónico <span className="text-red-500">*</span>
+                Correo Electrónico
               </label>
               <input
                 type="email"
@@ -280,29 +301,23 @@ const EmpleadoForm = () => {
                 value={formData.correo_electronico_empleado}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: juan.perez@example.com"
+                placeholder="empleado@ejemplo.com"
               />
             </div>
 
-            {/* Rol */}
+            {/* Fecha de Contratación */}
             <div>
-              <label htmlFor="id_rol" className="block text-sm font-medium text-gray-700 mb-1">
-                Rol <span className="text-red-500">*</span>
+              <label htmlFor="fecha_contratacion_empleado" className="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Contratación <span className="text-red-500">*</span>
               </label>
-              <select
-                id="id_rol"
-                name="id_rol"
-                value={formData.id_rol}
+              <input
+                type="date"
+                id="fecha_contratacion_empleado"
+                name="fecha_contratacion_empleado"
+                value={formData.fecha_contratacion_empleado}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Seleccione un rol</option>
-                {roles.map((rol) => (
-                  <option key={rol.id_rol} value={rol.id_rol}>
-                    {rol.nombre_rol}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* Estado Activo */}
