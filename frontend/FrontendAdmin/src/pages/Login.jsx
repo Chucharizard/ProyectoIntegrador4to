@@ -244,6 +244,20 @@ const Login = () => {
           <div className="mt-6 text-center text-sm text-gray-600">
             <p>Acceso solo para Broker y Secretaria</p>
           </div>
+
+          {/* Credenciales de prueba (solo desarrollo) */}
+          {import.meta.env.DEV && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs font-semibold text-yellow-800 mb-2">
+                🔑 Credenciales de Prueba:
+              </p>
+              <div className="text-xs text-yellow-700 space-y-1">
+                <p><strong>Usuario:</strong> broker_admin</p>
+                <p><strong>Contraseña:</strong> password123</p>
+                <p><strong>Rol:</strong> Broker (id_rol: 1)</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

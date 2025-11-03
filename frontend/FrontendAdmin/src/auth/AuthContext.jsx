@@ -11,15 +11,21 @@ export const AuthProvider = ({ children }) => {
   // Verificar si hay sesión al cargar
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('🔍 [AUTH] Verificando autenticación...');
       const token = authService.getToken();
+      console.log('🔑 [AUTH] Token:', token ? 'Existe' : 'No existe');
       
       if (token) {
         try {
+          console.log('📡 [AUTH] Obteniendo usuario actual...');
           // Intentar obtener el usuario actual
           const currentUser = await authService.getCurrentUser();
+          console.log('✅ [AUTH] Usuario obtenido:', currentUser);
           setUser(currentUser);
           setIsAuthenticated(true);
         } catch (error) {
+          console.error('❌ [AUTH] Error al obtener usuario:', error);
+          console.error('❌ [AUTH] Response:', error.response);
           // Si falla, limpiar la sesión
           authService.logout();
           setUser(null);
@@ -36,16 +42,22 @@ export const AuthProvider = ({ children }) => {
   // Login
   const login = async (credentials) => {
     try {
+      console.log('🔐 [LOGIN] Intentando login con:', credentials.nombre_usuario);
       const data = await authService.login(credentials);
+      console.log('✅ [LOGIN] Respuesta del login:', data);
       
       // Guardar token
       authService.saveSession(data.access_token, data.user);
+      console.log('💾 [LOGIN] Token y usuario guardados');
       
       setUser(data.user);
       setIsAuthenticated(true);
+      console.log('✅ [LOGIN] Estado actualizado, user:', data.user);
       
       return { success: true };
     } catch (error) {
+      console.error('❌ [LOGIN] Error:', error);
+      console.error('❌ [LOGIN] Response:', error.response);
       return {
         success: false,
         error: error.response?.data?.detail || 'Error al iniciar sesión',
