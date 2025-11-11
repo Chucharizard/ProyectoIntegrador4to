@@ -13,6 +13,8 @@ import UsuariosList from './pages/usuarios/UsuariosList';
 import UsuarioForm from './pages/usuarios/UsuarioForm';
 import PropietariosList from './pages/propietarios/PropietariosList';
 import PropietarioForm from './pages/propietarios/PropietarioForm';
+import PropiedadesList from './pages/propiedades/PropiedadesList';
+import PropiedadForm from './pages/propiedades/PropiedadForm';
 
 function App() {
   return (
@@ -169,16 +171,29 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Rutas de Propiedades */}
           <Route
             path="/propiedades"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Módulo Propiedades</h2>
-                    <p className="text-gray-600 mt-2">Próximamente...</p>
-                  </div>
-                </Layout>
+                <PropiedadesList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propiedades/nuevo"
+            element={
+              <ProtectedRoute>
+                <PropiedadForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/propiedades/editar/:id"
+            element={
+              <ProtectedRoute>
+                <PropiedadForm />
               </ProtectedRoute>
             }
           />
