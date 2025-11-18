@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { propiedadService } from '../../services/propiedadService';
 import { propietarioService } from '../../services/propietarioService';
-import Layout from '../../components/layout/Layout';
 import { 
   PencilIcon, 
   TrashIcon, 
@@ -151,222 +150,218 @@ const PropiedadesList = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </Layout>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Propiedades</h1>
-            <p className="text-gray-600 mt-1">Gestiona el catálogo de propiedades inmobiliarias</p>
-          </div>
-          <button
-            onClick={() => navigate('/propiedades/nuevo')}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Nueva Propiedad
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Propiedades</h1>
+          <p className="text-gray-600 mt-1">Gestiona el catálogo de propiedades inmobiliarias</p>
         </div>
+        <button
+          onClick={() => navigate('/propiedades/nuevo')}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <PlusIcon className="h-5 w-5" />
+          Nueva Propiedad
+        </button>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Propiedades</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <BuildingOfficeIcon className="h-10 w-10 text-blue-500" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Propiedades</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Publicadas</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.publicadas}</p>
-              </div>
-              <CheckCircleIcon className="h-10 w-10 text-blue-500" />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">En Venta</p>
-                <p className="text-2xl font-bold text-green-600">{stats.venta}</p>
-              </div>
-              <CurrencyDollarIcon className="h-10 w-10 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">En Alquiler</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.alquiler}</p>
-              </div>
-              <HomeIcon className="h-10 w-10 text-orange-500" />
-            </div>
+            <BuildingOfficeIcon className="h-10 w-10 text-blue-500" />
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar por título, código o propietario..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Publicadas</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.publicadas}</p>
             </div>
-
-            {/* Tipo de Operación */}
-            <select
-              value={tipoOperacionFilter}
-              onChange={(e) => setTipoOperacionFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Todos los tipos</option>
-              <option value="Venta">Venta</option>
-              <option value="Alquiler">Alquiler</option>
-              <option value="Anticrético">Anticrético</option>
-            </select>
-
-            {/* Estado */}
-            <select
-              value={estadoFilter}
-              onChange={(e) => setEstadoFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Todos los estados</option>
-              <option value="Captada">Captada</option>
-              <option value="Publicada">Publicada</option>
-              <option value="Reservada">Reservada</option>
-              <option value="Cerrada">Cerrada</option>
-            </select>
+            <CheckCircleIcon className="h-10 w-10 text-blue-500" />
           </div>
         </div>
 
-        {/* Results Count */}
-        <div className="text-sm text-gray-600">
-          Mostrando {filteredPropiedades.length} de {stats.total} propiedades
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">En Venta</p>
+              <p className="text-2xl font-bold text-green-600">{stats.venta}</p>
+            </div>
+            <CurrencyDollarIcon className="h-10 w-10 text-green-500" />
+          </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Código
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Título
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Propietario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Precio
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Superficie
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPropiedades.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                      <HomeIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p>No se encontraron propiedades</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredPropiedades.map((propiedad) => (
-                    <tr key={propiedad.id_propiedad} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {propiedad.codigo_publico_propiedad || 'Sin código'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div className="font-medium">{propiedad.titulo_propiedad}</div>
-                        {propiedad.descripcion_propiedad && (
-                          <div className="text-gray-500 text-xs truncate max-w-xs">
-                            {propiedad.descripcion_propiedad}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getPropietarioNombre(propiedad.ci_propietario)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTipoOperacionBadgeColor(propiedad.tipo_operacion_propiedad)}`}>
-                          {propiedad.tipo_operacion_propiedad || 'No especificado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                        {formatPrice(propiedad.precio_publicado_propiedad)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {propiedad.superficie_propiedad ? `${propiedad.superficie_propiedad} m²` : 'N/D'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoBadgeColor(propiedad.estado_propiedad)}`}>
-                          {propiedad.estado_propiedad || 'Sin estado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => navigate(`/propiedades/editar/${propiedad.id_propiedad}`)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Editar"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(propiedad.id_propiedad, propiedad.titulo_propiedad)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Eliminar"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">En Alquiler</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.alquiler}</p>
+            </div>
+            <HomeIcon className="h-10 w-10 text-orange-500" />
           </div>
         </div>
       </div>
-    </Layout>
+
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar por título, código o propietario..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Tipo de Operación */}
+          <select
+            value={tipoOperacionFilter}
+            onChange={(e) => setTipoOperacionFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Todos los tipos</option>
+            <option value="Venta">Venta</option>
+            <option value="Alquiler">Alquiler</option>
+            <option value="Anticrético">Anticrético</option>
+          </select>
+
+          {/* Estado */}
+          <select
+            value={estadoFilter}
+            onChange={(e) => setEstadoFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Todos los estados</option>
+            <option value="Captada">Captada</option>
+            <option value="Publicada">Publicada</option>
+            <option value="Reservada">Reservada</option>
+            <option value="Cerrada">Cerrada</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Results Count */}
+      <div className="text-sm text-gray-600">
+        Mostrando {filteredPropiedades.length} de {stats.total} propiedades
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Código
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Título
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Propietario
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tipo
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Precio
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Superficie
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estado
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPropiedades.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                    <HomeIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p>No se encontraron propiedades</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredPropiedades.map((propiedad) => (
+                  <tr key={propiedad.id_propiedad} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {propiedad.codigo_publico_propiedad || 'Sin código'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="font-medium">{propiedad.titulo_propiedad}</div>
+                      {propiedad.descripcion_propiedad && (
+                        <div className="text-gray-500 text-xs truncate max-w-xs">
+                          {propiedad.descripcion_propiedad}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getPropietarioNombre(propiedad.ci_propietario)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTipoOperacionBadgeColor(propiedad.tipo_operacion_propiedad)}`}>
+                        {propiedad.tipo_operacion_propiedad || 'No especificado'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                      {formatPrice(propiedad.precio_publicado_propiedad)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {propiedad.superficie_propiedad ? `${propiedad.superficie_propiedad} m²` : 'N/D'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoBadgeColor(propiedad.estado_propiedad)}`}>
+                        {propiedad.estado_propiedad || 'Sin estado'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => navigate(`/propiedades/editar/${propiedad.id_propiedad}`)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Editar"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(propiedad.id_propiedad, propiedad.titulo_propiedad)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Eliminar"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 };
 

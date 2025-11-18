@@ -1,0 +1,513 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { propiedades, zonas, tiposPropiedad, tiposOperacion } from '../data/propiedades';
+
+const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.estado === 'activa');
+---
+
+<Layout 
+  title="Mapa de Propiedades" 
+  description="Explora todas nuestras propiedades en el mapa interactivo. Encuentra tu hogar ideal por ubicación."
+>
+  <Header />
+  
+  <main class="map-page">
+    <div class="map-container">
+      <!-- Panel de filtros lateral -->
+      <aside class="map-sidebar">
+        <div class="sidebar-header">
+          <h2 class="sidebar-title">Filtrar propiedades</h2>
+          <button class="sidebar-close" aria-label="Cerrar filtros">×</button>
+        </div>
+
+        <form class="map-filters">
+          <!-- Tipo de operación -->
+          <div class="filter-group">
+            <label for="tipo-operacion" class="filter-label">Operación</label>
+            <select id="tipo-operacion" name="tipoOperacion" class="filter-input">
+              <option value="">Todas</option>
+              {tiposOperacion.map(tipo => (
+                <option value={tipo.value}>{tipo.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Tipo de propiedad -->
+          <div class="filter-group">
+            <label for="tipo-propiedad" class="filter-label">Tipo de propiedad</label>
+            <select id="tipo-propiedad" name="tipoPropiedad" class="filter-input">
+              <option value="">Todos</option>
+              {tiposPropiedad.map(tipo => (
+                <option value={tipo.value}>{tipo.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Zona -->
+          <div class="filter-group">
+            <label for="zona" class="filter-label">Zona</label>
+            <select id="zona" name="zona" class="filter-input">
+              <option value="">Todas las zonas</option>
+              {zonas.map(zona => (
+                <option value={zona}>{zona}</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Rango de precio -->
+          <div class="filter-group">
+            <label class="filter-label">Rango de precio</label>
+            <div class="price-inputs">
+              <input
+                type="number"
+                name="precioMin"
+                placeholder="Mín"
+                class="filter-input filter-input-small"
+                step="1000"
+              />
+              <span>-</span>
+              <input
+                type="number"
+                name="precioMax"
+                placeholder="Máx"
+                class="filter-input filter-input-small"
+                step="1000"
+              />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Aplicar filtros
+          </button>
+        </form>
+
+        <!-- Lista de propiedades -->
+        <div class="properties-list">
+          <h3 class="list-title">{propiedadesConCoordenadas.length} propiedades</h3>
+          <div class="properties-scroll">
+            {propiedadesConCoordenadas.map(propiedad => (
+              <a href={`/propiedad/${propiedad.slug}`} class="property-mini-card">
+                <img 
+                  src={propiedad.imagenPortada} 
+                  alt={propiedad.titulo}
+                  class="mini-card-image"
+                />
+                <div class="mini-card-content">
+                  <h4 class="mini-card-title">{propiedad.titulo}</h4>
+                  <p class="mini-card-location">{propiedad.zona}</p>
+                  <p class="mini-card-price">
+                    {new Intl.NumberFormat('es-PE', {
+                      style: 'currency',
+                      currency: 'USD',
+                      maximumFractionDigits: 0
+                    }).format(propiedad.precio)}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <!-- Mapa principal -->
+      <div class="map-main">
+        <button class="map-toggle-sidebar" aria-label="Mostrar/ocultar filtros">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="map-canvas">
+          <div class="map-placeholder">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"></path>
+              <line x1="8" y1="2" x2="8" y2="18"></line>
+              <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+            <h3>Mapa de propiedades</h3>
+            <p>Aquí se mostraría el mapa interactivo con {propiedadesConCoordenadas.length} marcadores</p>
+            <p class="map-note">En producción se integraría Google Maps, Mapbox o Leaflet</p>
+          </div>
+
+          <!-- Controles del mapa -->
+          <div class="map-controls">
+            <button class="map-control-btn" title="Acercar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <button class="map-control-btn" title="Alejar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <button class="map-control-btn" title="Mi ubicación">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .map-page {
+    height: calc(100vh - 70px);
+    overflow: hidden;
+  }
+
+  .map-container {
+    display: flex;
+    height: 100%;
+  }
+
+  /* Sidebar */
+  .map-sidebar {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--color-bg);
+    border-right: var(--border-width) solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+
+  .sidebar-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+  }
+
+  .sidebar-close {
+    display: none;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-3xl);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .map-filters {
+    padding: var(--spacing-xl);
+    border-bottom: var(--border-width) solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+  }
+
+  .filter-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background-color: var(--color-bg);
+  }
+
+  .filter-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .price-inputs {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-input-small {
+    flex: 1;
+  }
+
+  .btn-block {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .properties-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .list-title {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+
+  .properties-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+  }
+
+  .property-mini-card {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition-fast);
+  }
+
+  .property-mini-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+  }
+
+  .mini-card-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--border-radius-sm);
+    flex-shrink: 0;
+  }
+
+  .mini-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .mini-card-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .mini-card-location {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  .mini-card-price {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    margin: 0;
+  }
+
+  /* Map Main */
+  .map-main {
+    position: relative;
+    flex: 1;
+    background-color: var(--color-bg-tertiary);
+  }
+
+  .map-toggle-sidebar {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+  }
+
+  .map-canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    height: 100%;
+    color: var(--color-text-secondary);
+    padding: var(--spacing-xl);
+    text-align: center;
+  }
+
+  .map-placeholder h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .map-placeholder p {
+    font-size: var(--font-size-base);
+    margin: 0;
+  }
+
+  .map-note {
+    padding: var(--spacing-md);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .map-controls {
+    position: absolute;
+    right: var(--spacing-md);
+    top: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .map-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .map-control-btn:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  /* Responsive - Mobile */
+  @media (max-width: 480px) {
+    .page-header {
+      padding: var(--spacing-xl) 0 var(--spacing-md);
+    }
+
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+
+    .page-description {
+      font-size: var(--font-size-sm);
+    }
+
+    .map-sidebar {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .property-card-compact {
+      padding: var(--spacing-sm);
+    }
+
+    .property-card-compact h3 {
+      font-size: var(--font-size-sm);
+    }
+
+    .property-card-compact .price {
+      font-size: var(--font-size-base);
+    }
+
+    .map-toggle-sidebar {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-sm);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .map-sidebar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      transform: translateX(-100%);
+      transition: transform var(--transition-base);
+      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .map-sidebar.active {
+      transform: translateX(0);
+    }
+
+    .sidebar-close {
+      display: flex;
+    }
+
+    .map-toggle-sidebar {
+      display: flex;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .map-sidebar {
+      max-width: 400px;
+    }
+  }
+</style>
+
+<script>
+  // Toggle sidebar en móviles
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.querySelector('.map-toggle-sidebar');
+    const closeBtn = document.querySelector('.sidebar-close');
+    const sidebar = document.querySelector('.map-sidebar');
+
+    if (toggleBtn && sidebar) {
+      toggleBtn.addEventListener('click', () => {
+        sidebar.classList.add('active');
+      });
+    }
+
+    if (closeBtn && sidebar) {
+      closeBtn.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+      });
+    }
+  });
+</script>

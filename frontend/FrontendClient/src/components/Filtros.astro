@@ -1,0 +1,284 @@
+---
+import { zonas, tiposPropiedad, tiposOperacion } from '../data/propiedades';
+
+interface Props {
+  showAdvanced?: boolean;
+}
+
+const { showAdvanced = false } = Astro.props;
+const url = new URL(Astro.request.url);
+const params = url.searchParams;
+---
+
+<div class="search-filters">
+  <form method="GET" action="/propiedades" class="filters-form">
+    <div class="filters-grid">
+      <!-- Tipo de operación -->
+      <div class="filter-group">
+        <label for="tipoOperacion" class="filter-label">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          Operación
+        </label>
+        <select id="tipoOperacion" name="tipoOperacion" class="filter-input">
+          <option value="">Todos</option>
+          {tiposOperacion.map(tipo => (
+            <option value={tipo.value} selected={params.get('tipoOperacion') === tipo.value}>
+              {tipo.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <!-- Tipo de propiedad -->
+      <div class="filter-group">
+        <label for="tipoPropiedad" class="filter-label">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          </svg>
+          Tipo
+        </label>
+        <select id="tipoPropiedad" name="tipoPropiedad" class="filter-input">
+          <option value="">Todos</option>
+          {tiposPropiedad.map(tipo => (
+            <option value={tipo.value} selected={params.get('tipoPropiedad') === tipo.value}>
+              {tipo.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <!-- Zona -->
+      <div class="filter-group">
+        <label for="zona" class="filter-label">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          Zona
+        </label>
+        <select id="zona" name="zona" class="filter-input">
+          <option value="">Todas las zonas</option>
+          {zonas.map(zona => (
+            <option value={zona} selected={params.get('zona') === zona}>
+              {zona}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {showAdvanced && (
+        <>
+          <!-- Precio mínimo -->
+          <div class="filter-group">
+            <label for="precioMin" class="filter-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              Precio mínimo
+            </label>
+            <input
+              type="number"
+              id="precioMin"
+              name="precioMin"
+              class="filter-input"
+              placeholder="Desde..."
+              min="0"
+              step="1000"
+              value={params.get('precioMin') || ''}
+            />
+          </div>
+
+          <!-- Precio máximo -->
+          <div class="filter-group">
+            <label for="precioMax" class="filter-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              Precio máximo
+            </label>
+            <input
+              type="number"
+              id="precioMax"
+              name="precioMax"
+              class="filter-input"
+              placeholder="Hasta..."
+              min="0"
+              step="1000"
+              value={params.get('precioMax') || ''}
+            />
+          </div>
+
+          <!-- Estado -->
+          <div class="filter-group">
+            <label for="estado" class="filter-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Estado
+            </label>
+            <select id="estado" name="estado" class="filter-input">
+              <option value="">Todos</option>
+              <option value="activa" selected={params.get('estado') === 'activa'}>Disponible</option>
+              <option value="reservada" selected={params.get('estado') === 'reservada'}>Reservada</option>
+              <option value="vendida" selected={params.get('estado') === 'vendida'}>Vendida</option>
+            </select>
+          </div>
+        </>
+      )}
+
+      <!-- Botones -->
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Buscar
+        </button>
+        <a href="/propiedades" class="btn btn-secondary">
+          Limpiar
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+  .search-filters {
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-md);
+  }
+
+  .filters-form {
+    width: 100%;
+  }
+
+  .filters-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+  }
+
+  .filter-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .filter-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    grid-column: 1 / -1;
+  }
+
+  .filter-actions .btn {
+    flex: 1;
+  }
+
+  @media (min-width: 640px) {
+    .filters-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Responsive - Mobile First */
+  @media (max-width: 639px) {
+    .filters-container {
+      padding: var(--spacing-md);
+    }
+
+    .filters-header h3 {
+      font-size: var(--font-size-lg);
+    }
+
+    .filters-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+
+    .form-group label {
+      font-size: var(--font-size-sm);
+    }
+
+    .form-input,
+    .form-select {
+      font-size: var(--font-size-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .filter-actions {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .filter-actions button {
+      width: 100%;
+    }
+  }
+
+  @media (min-width: 640px) {
+    .filters-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filter-actions {
+      grid-column: span 2;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .filters-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .filter-actions {
+      grid-column: span 3;
+      max-width: 400px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .filters-grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    .filter-actions {
+      grid-column: span 2;
+    }
+  }
+</style>

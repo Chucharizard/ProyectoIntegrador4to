@@ -87,3 +87,5 @@ export const propiedadService = {
 };
 
 export default propiedadService;
+
+

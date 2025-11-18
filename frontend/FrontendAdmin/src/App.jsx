@@ -15,6 +15,8 @@ import PropietariosList from './pages/propietarios/PropietariosList';
 import PropietarioForm from './pages/propietarios/PropietarioForm';
 import PropiedadesList from './pages/propiedades/PropiedadesList';
 import PropiedadForm from './pages/propiedades/PropiedadForm';
+import CitasList from './pages/citas/CitasList';
+import CitaForm from './pages/citas/CitaForm';
 
 function App() {
   return (
@@ -46,186 +48,90 @@ function App() {
         />
         
         <Routes>
+          {/* Ruta pública sin Layout */}
           <Route path="/login" element={<Login />} />
           
+          {/* ✅ TODAS las rutas protegidas dentro de UN SOLO Layout persistente */}
           <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Rutas de Empleados */}
-          <Route
-            path="/empleados"
-            element={
-              <ProtectedRoute>
-                <EmpleadosList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/empleados/nuevo"
-            element={
-              <ProtectedRoute>
-                <EmpleadoForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/empleados/editar/:ci"
-            element={
-              <ProtectedRoute>
-                <EmpleadoForm />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* ✅ Rutas de Usuarios - Ahora usan UUID */}
-          <Route
-            path="/usuarios"
-            element={
-              <ProtectedRoute>
-                <UsuariosList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/usuarios/nuevo"
-            element={
-              <ProtectedRoute>
-                <UsuarioForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/usuarios/editar/:id_usuario"
-            element={
-              <ProtectedRoute>
-                <UsuarioForm />
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
-            path="/roles"
+            path="/*"
             element={
               <ProtectedRoute>
                 <Layout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Módulo Roles</h2>
-                    <p className="text-gray-600 mt-2">Próximamente...</p>
-                  </div>
+                  <Routes>
+                    {/* Dashboard */}
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    
+                    {/* Empleados */}
+                    <Route path="/empleados" element={<EmpleadosList />} />
+                    <Route path="/empleados/nuevo" element={<EmpleadoForm />} />
+                    <Route path="/empleados/editar/:ci" element={<EmpleadoForm />} />
+                    
+                    {/* Usuarios */}
+                    <Route path="/usuarios" element={<UsuariosList />} />
+                    <Route path="/usuarios/nuevo" element={<UsuarioForm />} />
+                    <Route path="/usuarios/editar/:id_usuario" element={<UsuarioForm />} />
+                    
+                    {/* Roles */}
+                    <Route 
+                      path="/roles" 
+                      element={
+                        <div className="p-8 text-center">
+                          <h2 className="text-2xl font-bold text-gray-800">Módulo Roles</h2>
+                          <p className="text-gray-600 mt-2">Próximamente...</p>
+                        </div>
+                      } 
+                    />
+                    
+                    {/* Clientes */}
+                    <Route path="/clientes" element={<ClientesList />} />
+                    <Route path="/clientes/nuevo" element={<ClienteForm />} />
+                    <Route path="/clientes/editar/:ci" element={<ClienteForm />} />
+                    
+                    {/* Propietarios */}
+                    <Route path="/propietarios" element={<PropietariosList />} />
+                    <Route path="/propietarios/nuevo" element={<PropietarioForm />} />
+                    <Route path="/propietarios/editar/:ci" element={<PropietarioForm />} />
+                    
+                    {/* Propiedades */}
+                    <Route path="/propiedades" element={<PropiedadesList />} />
+                    <Route path="/propiedades/nuevo" element={<PropiedadForm />} />
+                    <Route path="/propiedades/editar/:id" element={<PropiedadForm />} />
+                    
+                    {/* Citas/Visitas */}
+                    <Route path="/citas" element={<CitasList />} />
+                    <Route path="/citas/nuevo" element={<CitaForm />} />
+                    <Route path="/citas/editar/:id" element={<CitaForm />} />
+                    
+                    {/* Contratos */}
+                    <Route 
+                      path="/contratos" 
+                      element={
+                        <div className="p-8 text-center">
+                          <h2 className="text-2xl font-bold text-gray-800">Módulo Contratos</h2>
+                          <p className="text-gray-600 mt-2">Próximamente...</p>
+                        </div>
+                      } 
+                    />
+                    
+                    {/* Visitas */}
+                    <Route 
+                      path="/visitas" 
+                      element={
+                        <div className="p-8 text-center">
+                          <h2 className="text-2xl font-bold text-gray-800">Módulo Visitas</h2>
+                          <p className="text-gray-600 mt-2">Próximamente...</p>
+                        </div>
+                      } 
+                    />
+                    
+                    {/* Redirecciones */}
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
                 </Layout>
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/clientes"
-            element={
-              <ProtectedRoute>
-                <ClientesList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/clientes/nuevo"
-            element={
-              <ProtectedRoute>
-                <ClienteForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/clientes/editar/:ci"
-            element={
-              <ProtectedRoute>
-                <ClienteForm />
-              </ProtectedRoute>
-            }
-          />
-          {/* Rutas de Propietarios */}
-          <Route
-            path="/propietarios"
-            element={
-              <ProtectedRoute>
-                <PropietariosList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/propietarios/nuevo"
-            element={
-              <ProtectedRoute>
-                <PropietarioForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/propietarios/editar/:ci"
-            element={
-              <ProtectedRoute>
-                <PropietarioForm />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Rutas de Propiedades */}
-          <Route
-            path="/propiedades"
-            element={
-              <ProtectedRoute>
-                <PropiedadesList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/propiedades/nuevo"
-            element={
-              <ProtectedRoute>
-                <PropiedadForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/propiedades/editar/:id"
-            element={
-              <ProtectedRoute>
-                <PropiedadForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/contratos"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Módulo Contratos</h2>
-                    <p className="text-gray-600 mt-2">Próximamente...</p>
-                  </div>
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/visitas"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Módulo Visitas</h2>
-                    <p className="text-gray-600 mt-2">Próximamente...</p>
-                  </div>
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

@@ -39,3 +39,5 @@ export const clienteService = {
     return response.data;
   },
 };
+
+export default clienteService;
