@@ -1,0 +1,426 @@
+/* ============================================
+   Design Tokens - InmobiliariaApp Admin
+   Arquitectura de 3 capas: Options → Decisions → Components
+   ============================================ */
+
+:root {
+  
+  /* ============================================
+     CAPA 1: OPTION TOKENS (Primitivos)
+     Define QUÉ opciones de diseño están disponibles
+     ============================================ */
+  
+  /* --- Color Palette: Primary (Blue Slate) --- */
+  --color-primary-50: #f8fafc;
+  --color-primary-100: #f1f5f9;
+  --color-primary-200: #e2e8f0;
+  --color-primary-300: #cbd5e1;
+  --color-primary-400: #94a3b8;
+  --color-primary-500: #64748b;
+  --color-primary-600: #475569;
+  --color-primary-700: #334155;
+  --color-primary-800: #1e293b;
+  --color-primary-900: #0f172a;
+  --color-primary-950: #020617;
+  
+  /* --- Color Palette: Secondary (Emerald) --- */
+  --color-secondary-50: #ecfdf5;
+  --color-secondary-100: #d1fae5;
+  --color-secondary-200: #a7f3d0;
+  --color-secondary-300: #6ee7b7;
+  --color-secondary-400: #34d399;
+  --color-secondary-500: #10b981;
+  --color-secondary-600: #059669;
+  --color-secondary-700: #047857;
+  --color-secondary-800: #065f46;
+  --color-secondary-900: #064e3b;
+  
+  /* --- Color Palette: Accent (Orange) --- */
+  --color-accent-50: #fff7ed;
+  --color-accent-100: #ffedd5;
+  --color-accent-200: #fed7aa;
+  --color-accent-300: #fdba74;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
+  --color-accent-700: #c2410c;
+  --color-accent-800: #9a3412;
+  --color-accent-900: #7c2d12;
+  
+  /* --- Color Palette: Feedback (Semantic States) --- */
+  --color-success-50: #ecfdf5;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+  
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  
+  --color-error-50: #fef2f2;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  
+  --color-info-50: #eff6ff;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+  --color-info-700: #1d4ed8;
+  
+  /* --- Color Palette: Neutrals --- */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  /* --- Spacing Scale (8px base) --- */
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+  
+  /* --- Border Radius Scale --- */
+  --radius-none: 0;
+  --radius-sm: 0.125rem;    /* 2px */
+  --radius-base: 0.25rem;   /* 4px */
+  --radius-md: 0.375rem;    /* 6px */
+  --radius-lg: 0.5rem;      /* 8px */
+  --radius-xl: 0.75rem;     /* 12px */
+  --radius-2xl: 1rem;       /* 16px */
+  --radius-3xl: 1.5rem;     /* 24px */
+  --radius-full: 9999px;
+  
+  /* --- Typography Scale --- */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2.25rem;    /* 36px */
+  --font-size-5xl: 3rem;       /* 48px */
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* --- Shadow Layers --- */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-base: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  
+  /* --- Transition Durations --- */
+  --duration-instant: 0ms;
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+  
+  /* --- Transition Easings --- */
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* --- Z-Index Layers --- */
+  --z-index-base: 0;
+  --z-index-dropdown: 100;
+  --z-index-sticky: 200;
+  --z-index-fixed: 300;
+  --z-index-modal-backdrop: 400;
+  --z-index-modal: 500;
+  --z-index-popover: 600;
+  --z-index-tooltip: 700;
+  --z-index-toast: 800;
+  
+  
+  /* ============================================
+     CAPA 2: DECISION TOKENS (Semánticos)
+     Define CÓMO se aplican los tokens en contexto
+     ============================================ */
+  
+  /* --- Surface Colors (Fondos) --- */
+  --surface-base: var(--color-white);
+  --surface-primary: var(--color-primary-50);
+  --surface-secondary: var(--color-gray-50);
+  --surface-tertiary: var(--color-gray-100);
+  --surface-overlay: var(--color-gray-900);
+  --surface-inverted: var(--color-primary-900);
+  --surface-brand: var(--color-secondary-500);
+  
+  /* --- Text Colors --- */
+  --text-primary: var(--color-primary-900);
+  --text-secondary: var(--color-primary-600);
+  --text-tertiary: var(--color-primary-400);
+  --text-disabled: var(--color-gray-400);
+  --text-inverted: var(--color-white);
+  --text-link: var(--color-secondary-600);
+  --text-link-hover: var(--color-secondary-700);
+  --text-error: var(--color-error-600);
+  --text-success: var(--color-success-600);
+  --text-warning: var(--color-warning-600);
+  
+  /* --- Border Colors --- */
+  --border-default: var(--color-gray-200);
+  --border-strong: var(--color-gray-300);
+  --border-subtle: var(--color-gray-100);
+  --border-interactive: var(--color-secondary-500);
+  --border-focus: var(--color-secondary-500);
+  --border-error: var(--color-error-500);
+  --border-success: var(--color-success-500);
+  
+  /* --- Interactive Colors (Estados) --- */
+  --interactive-default: var(--color-secondary-500);
+  --interactive-hover: var(--color-secondary-600);
+  --interactive-active: var(--color-secondary-700);
+  --interactive-disabled: var(--color-gray-300);
+  --interactive-focus-ring: var(--color-secondary-500);
+  
+  /* --- Feedback Backgrounds --- */
+  --bg-success: var(--color-success-50);
+  --bg-warning: var(--color-warning-50);
+  --bg-error: var(--color-error-50);
+  --bg-info: var(--color-info-50);
+  
+  /* --- Component Spacing --- */
+  --spacing-component-xs: var(--space-2);  /* 8px */
+  --spacing-component-sm: var(--space-3);  /* 12px */
+  --spacing-component-md: var(--space-4);  /* 16px */
+  --spacing-component-lg: var(--space-6);  /* 24px */
+  --spacing-component-xl: var(--space-8);  /* 32px */
+  
+  /* --- Layout Spacing --- */
+  --spacing-section: var(--space-12);      /* 48px */
+  --spacing-page: var(--space-16);         /* 64px */
+  
+  /* --- Shadows (Semánticos) --- */
+  --shadow-card: var(--shadow-sm);
+  --shadow-card-hover: var(--shadow-md);
+  --shadow-dropdown: var(--shadow-lg);
+  --shadow-modal: var(--shadow-xl);
+  --shadow-colored: 0 10px 15px -3px rgb(16 185 129 / 0.2), 0 4px 6px -4px rgb(16 185 129 / 0.1);
+  
+  /* --- Typography (Semánticos) --- */
+  --font-display: var(--font-family-sans);
+  --font-body: var(--font-family-sans);
+  --font-code: var(--font-family-mono);
+  
+  
+  /* ============================================
+     CAPA 3: COMPONENT TOKENS
+     Define DÓNDE se aplican los estilos (componentes específicos)
+     ============================================ */
+  
+  /* --- Buttons --- */
+  --btn-primary-bg: var(--interactive-default);
+  --btn-primary-bg-hover: var(--interactive-hover);
+  --btn-primary-bg-active: var(--interactive-active);
+  --btn-primary-text: var(--text-inverted);
+  --btn-primary-border: transparent;
+  --btn-primary-shadow: var(--shadow-sm);
+  --btn-primary-shadow-hover: var(--shadow-colored);
+  
+  --btn-secondary-bg: var(--color-primary-100);
+  --btn-secondary-bg-hover: var(--color-primary-200);
+  --btn-secondary-text: var(--text-primary);
+  --btn-secondary-border: transparent;
+  
+  --btn-outline-bg: transparent;
+  --btn-outline-bg-hover: var(--color-secondary-50);
+  --btn-outline-text: var(--color-secondary-600);
+  --btn-outline-border: var(--border-interactive);
+  
+  --btn-danger-bg: var(--color-error-600);
+  --btn-danger-bg-hover: var(--color-error-700);
+  --btn-danger-text: var(--text-inverted);
+  
+  --btn-disabled-bg: var(--interactive-disabled);
+  --btn-disabled-text: var(--text-disabled);
+  
+  --btn-padding-y: 0.625rem;   /* 10px */
+  --btn-padding-x: 1.25rem;    /* 20px */
+  --btn-border-radius: var(--radius-lg);
+  --btn-font-weight: var(--font-weight-medium);
+  
+  /* --- Input Fields --- */
+  --input-bg: var(--surface-base);
+  --input-bg-disabled: var(--surface-tertiary);
+  --input-border: var(--border-default);
+  --input-border-hover: var(--border-strong);
+  --input-border-focus: var(--border-focus);
+  --input-border-error: var(--border-error);
+  --input-text: var(--text-primary);
+  --input-text-placeholder: var(--text-tertiary);
+  --input-padding-y: 0.625rem;
+  --input-padding-x: 1rem;
+  --input-border-radius: var(--radius-lg);
+  --input-focus-ring: var(--interactive-focus-ring);
+  --input-focus-ring-width: 2px;
+  --input-focus-ring-offset: 0;
+  
+  /* --- Cards --- */
+  --card-bg: var(--surface-base);
+  --card-border: var(--border-subtle);
+  --card-border-radius: var(--radius-xl);
+  --card-padding: var(--spacing-component-lg);
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
+  
+  /* --- Modals --- */
+  --modal-bg: var(--surface-base);
+  --modal-backdrop: rgba(15, 23, 42, 0.75);
+  --modal-border-radius: var(--radius-2xl);
+  --modal-shadow: var(--shadow-modal);
+  --modal-padding: var(--spacing-component-xl);
+  
+  /* --- Badges --- */
+  --badge-success-bg: var(--bg-success);
+  --badge-success-text: var(--text-success);
+  --badge-warning-bg: var(--bg-warning);
+  --badge-warning-text: var(--text-warning);
+  --badge-error-bg: var(--bg-error);
+  --badge-error-text: var(--text-error);
+  --badge-info-bg: var(--bg-info);
+  --badge-info-text: var(--text-info);
+  --badge-padding-y: 0.25rem;
+  --badge-padding-x: 0.625rem;
+  --badge-border-radius: var(--radius-full);
+  --badge-font-size: var(--font-size-xs);
+  --badge-font-weight: var(--font-weight-medium);
+  
+  /* --- Tooltips --- */
+  --tooltip-bg: var(--color-gray-900);
+  --tooltip-text: var(--text-inverted);
+  --tooltip-border-radius: var(--radius-md);
+  --tooltip-padding: var(--spacing-component-xs);
+  --tooltip-font-size: var(--font-size-sm);
+  --tooltip-shadow: var(--shadow-lg);
+  
+  /* --- Dropdowns --- */
+  --dropdown-bg: var(--surface-base);
+  --dropdown-border: var(--border-default);
+  --dropdown-border-radius: var(--radius-lg);
+  --dropdown-shadow: var(--shadow-dropdown);
+  --dropdown-item-hover-bg: var(--surface-secondary);
+  
+  /* --- Navbar --- */
+  --navbar-bg: var(--surface-inverted);
+  --navbar-text: var(--text-inverted);
+  --navbar-border: var(--border-subtle);
+  --navbar-height: 4rem;
+  
+  /* --- Sidebar --- */
+  --sidebar-bg: var(--surface-base);
+  --sidebar-width: 16rem;
+  --sidebar-border: var(--border-default);
+  --sidebar-item-hover-bg: var(--surface-secondary);
+  --sidebar-item-active-bg: var(--color-secondary-50);
+  --sidebar-item-active-text: var(--color-secondary-700);
+  
+  /* --- Transitions (Component Level) --- */
+  --transition-button: var(--duration-base) var(--ease-in-out);
+  --transition-input: var(--duration-fast) var(--ease-out);
+  --transition-card: var(--duration-base) var(--ease-out);
+  --transition-modal: var(--duration-slow) var(--ease-in-out);
+  
+  /* --- Gradients --- */
+  --gradient-primary: linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-secondary-500) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--color-secondary-500) 0%, var(--color-accent-500) 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+  --gradient-hero: linear-gradient(135deg, var(--color-primary-50) 0%, var(--color-secondary-50) 100%);
+}
+
+
+/* ============================================
+   DARK MODE (Opcional - Futuro)
+   ============================================ */
+[data-theme="dark"] {
+  /* Surface Colors */
+  --surface-base: var(--color-primary-900);
+  --surface-primary: var(--color-primary-800);
+  --surface-secondary: var(--color-primary-700);
+  --surface-tertiary: var(--color-primary-600);
+  
+  /* Text Colors */
+  --text-primary: var(--color-gray-100);
+  --text-secondary: var(--color-gray-300);
+  --text-tertiary: var(--color-gray-400);
+  
+  /* Borders */
+  --border-default: var(--color-primary-700);
+  --border-strong: var(--color-primary-600);
+  
+  /* Cards */
+  --card-bg: var(--color-primary-800);
+  
+  /* Inputs */
+  --input-bg: var(--color-primary-800);
+}
+
+
+/* ============================================
+   UTILIDADES DE GRADIENTE
+   ============================================ */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-border {
+  position: relative;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--gradient-accent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition-button);
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}

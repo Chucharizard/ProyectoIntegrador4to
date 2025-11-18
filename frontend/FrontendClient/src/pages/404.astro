@@ -1,0 +1,176 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout 
+  title="Página no encontrada" 
+  description="La página que buscas no existe o ha sido movida."
+>
+  <Header />
+  
+  <main class="error-page">
+    <div class="container">
+      <div class="error-content">
+        <div class="error-illustration">
+          <svg width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <h1 class="error-code">404</h1>
+        </div>
+
+        <div class="error-text">
+          <h2 class="error-title">Página no encontrada</h2>
+          <p class="error-description">
+            Lo sentimos, la página que estás buscando no existe o ha sido movida. 
+            Por favor, verifica la URL o vuelve al inicio.
+          </p>
+
+          <div class="error-actions">
+            <a href="/" class="btn btn-primary btn-lg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              Volver al inicio
+            </a>
+            <a href="/propiedades" class="btn btn-outline btn-lg">
+              Ver propiedades
+            </a>
+          </div>
+
+          <div class="quick-links">
+            <p class="quick-links-title">Enlaces útiles:</p>
+            <ul>
+              <li><a href="/propiedades">Catálogo de propiedades</a></li>
+              <li><a href="/mapa">Mapa de propiedades</a></li>
+              <li><a href="/propiedades?tipoOperacion=venta">Propiedades en venta</a></li>
+              <li><a href="/propiedades?tipoOperacion=alquiler">Propiedades en alquiler</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .error-page {
+    min-height: calc(100vh - 70px - 400px);
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-4xl) 0;
+  }
+
+  .error-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-3xl);
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .error-illustration {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+  }
+
+  .error-illustration svg {
+    opacity: 0.2;
+  }
+
+  .error-code {
+    position: absolute;
+    font-size: 8rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
+    line-height: 1;
+  }
+
+  .error-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    width: 100%;
+  }
+
+  .error-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .error-description {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-relaxed);
+    margin: 0;
+  }
+
+  .error-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .btn-lg {
+    padding: var(--spacing-md) var(--spacing-2xl);
+    font-size: var(--font-size-lg);
+  }
+
+  .quick-links {
+    padding: var(--spacing-xl);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius-lg);
+    text-align: left;
+  }
+
+  .quick-links-title {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .quick-links ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .quick-links a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .quick-links a:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+  }
+
+  @media (min-width: 640px) {
+    .error-code {
+      font-size: 12rem;
+    }
+
+    .error-actions {
+      flex-direction: row;
+    }
+  }
+</style>

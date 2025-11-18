@@ -1,0 +1,683 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { propiedades, obtenerPropiedadPorSlug } from '../../data/propiedades';
+
+export async function getStaticPaths() {
+  return propiedades.map(propiedad => ({
+    params: { slug: propiedad.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const propiedad = obtenerPropiedadPorSlug(slug);
+
+if (!propiedad) {
+  return Astro.redirect('/404');
+}
+
+function formatearPrecio(precio: number): string {
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0
+  }).format(precio);
+}
+
+function obtenerEstadoBadge(estado: string) {
+  const badges = {
+    activa: { class: 'badge-success', text: 'Disponible' },
+    reservada: { class: 'badge-warning', text: 'Reservada' },
+    vendida: { class: 'badge-error', text: 'Vendida' },
+    borrador: { class: 'badge-info', text: 'Borrador' }
+  };
+  return badges[estado as keyof typeof badges] || badges.activa;
+}
+
+const estadoBadge = obtenerEstadoBadge(propiedad.estado);
+const mensajeWhatsApp = `Hola, me interesa la propiedad: ${propiedad.titulo} (${propiedad.id})`;
+---
+
+<Layout 
+  title={propiedad.titulo} 
+  description={propiedad.descripcion}
+  ogImage={propiedad.imagenPortada}
+>
+  <Header />
+  
+  <main class="property-detail">
+    <div class="container">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb" aria-label="breadcrumb">
+        <a href="/">Inicio</a>
+        <span>/</span>
+        <a href="/propiedades">Propiedades</a>
+        <span>/</span>
+        <span>{propiedad.titulo}</span>
+      </nav>
+
+      <!-- Encabezado -->
+      <div class="property-header">
+        <div class="property-header-main">
+          <h1 class="property-title">{propiedad.titulo}</h1>
+          <p class="property-location">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            {propiedad.direccionResumida}, {propiedad.zona}, {propiedad.ciudad}
+          </p>
+          <div class="property-badges">
+            <span class={`badge ${estadoBadge.class}`}>{estadoBadge.text}</span>
+            <span class="badge badge-info">
+              {propiedad.tipoOperacion === 'venta' ? 'En Venta' : 'En Alquiler'}
+            </span>
+          </div>
+        </div>
+        <div class="property-header-price">
+          <p class="property-price">{formatearPrecio(propiedad.precio)}</p>
+          {propiedad.tipoOperacion === 'alquiler' && (
+            <span class="price-period">por mes</span>
+          )}
+        </div>
+      </div>
+
+      <!-- Galería -->
+      <div class="gallery">
+        <div class="gallery-main">
+          <img 
+            src={propiedad.imagenPortada} 
+            alt={propiedad.titulo}
+            class="gallery-main-image"
+          />
+        </div>
+        <div class="gallery-thumbs">
+          {propiedad.galeria.slice(1, 4).map((imagen, index) => (
+            <div class="gallery-thumb">
+              <img src={imagen} alt={`${propiedad.titulo} - Imagen ${index + 2}`} />
+            </div>
+          ))}
+          {propiedad.galeria.length > 4 && (
+            <div class="gallery-thumb gallery-more">
+              <img src={propiedad.galeria[4]} alt={`${propiedad.titulo} - Más imágenes`} />
+              <div class="gallery-more-overlay">
+                <span>+{propiedad.galeria.length - 4} fotos</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Contenido -->
+      <div class="property-content">
+        <!-- Columna principal -->
+        <div class="content-main">
+          <!-- Características -->
+          <section class="property-section">
+            <h2 class="section-title">Características principales</h2>
+            <div class="features-grid">
+              {propiedad.dormitorios > 0 && (
+                <div class="feature-item">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                  <div>
+                    <span class="feature-value">{propiedad.dormitorios}</span>
+                    <span class="feature-label">Dormitorios</span>
+                  </div>
+                </div>
+              )}
+              {propiedad.banos > 0 && (
+                <div class="feature-item">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 6L9 3"></path>
+                    <path d="M15 6L15 3"></path>
+                    <path d="M2 12h20"></path>
+                    <path d="M6 12v9"></path>
+                    <path d="M18 12v9"></path>
+                  </svg>
+                  <div>
+                    <span class="feature-value">{propiedad.banos}</span>
+                    <span class="feature-label">Baños</span>
+                  </div>
+                </div>
+              )}
+              <div class="feature-item">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                </svg>
+                <div>
+                  <span class="feature-value">{propiedad.superficieTotal} m²</span>
+                  <span class="feature-label">Superficie Total</span>
+                </div>
+              </div>
+              {propiedad.superficieConstruida > 0 && (
+                <div class="feature-item">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  </svg>
+                  <div>
+                    <span class="feature-value">{propiedad.superficieConstruida} m²</span>
+                    <span class="feature-label">Construidos</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <!-- Descripción -->
+          <section class="property-section">
+            <h2 class="section-title">Descripción</h2>
+            <p class="property-description">{propiedad.descripcion}</p>
+          </section>
+
+          <!-- Amenities -->
+          {propiedad.amenities.length > 0 && (
+            <section class="property-section">
+              <h2 class="section-title">Amenidades</h2>
+              <div class="amenities-grid">
+                {propiedad.amenities.map(amenity => (
+                  <div class="amenity-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>{amenity}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <!-- Mapa -->
+          {propiedad.coordenadas && (
+            <section class="property-section">
+              <h2 class="section-title">Ubicación</h2>
+              <div class="map-placeholder">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <p>Mapa de ubicación</p>
+                <p class="map-coords">
+                  Lat: {propiedad.coordenadas.lat}, Lng: {propiedad.coordenadas.lng}
+                </p>
+              </div>
+            </section>
+          )}
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="content-sidebar">
+          <!-- CTA Contact -->
+          <div class="contact-card">
+            <h3 class="contact-title">¿Te interesa esta propiedad?</h3>
+            <p class="contact-text">Contáctanos para más información o agendar una visita</p>
+            
+            <a 
+              href={`https://wa.me/51999999999?text=${encodeURIComponent(mensajeWhatsApp)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-primary btn-block whatsapp-btn"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+              Contactar por WhatsApp
+            </a>
+
+            <div class="contact-info">
+              <div class="info-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <span>+51 999 999 999</span>
+              </div>
+              <div class="info-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span>info@inmobiliariaapp.com</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalles adicionales -->
+          <div class="details-card">
+            <h4 class="details-title">Detalles</h4>
+            <div class="details-list">
+              <div class="detail-item">
+                <span class="detail-label">Código:</span>
+                <span class="detail-value">{propiedad.id}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Tipo:</span>
+                <span class="detail-value">{propiedad.tipoPropiedad}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Operación:</span>
+                <span class="detail-value">{propiedad.tipoOperacion}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Publicado:</span>
+                <span class="detail-value">{new Date(propiedad.fechaPublicacion).toLocaleDateString('es-ES')}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .property-detail {
+    padding: var(--spacing-xl) 0 var(--spacing-4xl);
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .breadcrumb a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .breadcrumb a:hover {
+    color: var(--color-primary);
+  }
+
+  .property-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .property-header-main {
+    flex: 1;
+  }
+
+  .property-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .property-location {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .property-badges {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .property-header-price {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+  }
+
+  .property-price {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
+  }
+
+  .price-period {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+  }
+
+  /* Gallery */
+  .gallery {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .gallery-main {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    background-color: var(--color-bg-tertiary);
+  }
+
+  .gallery-main-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .gallery-thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .gallery-thumb {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    background-color: var(--color-bg-tertiary);
+    cursor: pointer;
+  }
+
+  .gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+  }
+
+  .gallery-thumb:hover img {
+    transform: scale(1.05);
+  }
+
+  .gallery-more-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* Content */
+  .property-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-3xl);
+  }
+
+  .content-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xl);
+  }
+
+  .property-section {
+    padding-bottom: var(--spacing-2xl);
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+
+  .section-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius-md);
+  }
+
+  .feature-item svg {
+    color: var(--color-primary);
+  }
+
+  .feature-item div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .feature-value {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+  }
+
+  .feature-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .property-description {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  .amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .amenity-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+
+  .amenity-item svg {
+    color: var(--color-success);
+    flex-shrink: 0;
+  }
+
+  .map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    height: 400px;
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius-lg);
+    color: var(--color-text-secondary);
+  }
+
+  .map-coords {
+    font-size: var(--font-size-sm);
+    font-family: monospace;
+    margin: 0;
+  }
+
+  /* Sidebar */
+  .content-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .contact-card,
+  .details-card {
+    padding: var(--spacing-xl);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .contact-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .contact-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .btn-block {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .whatsapp-btn {
+    background-color: #25d366;
+    border-color: #25d366;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .whatsapp-btn:hover {
+    background-color: #1fb855;
+    border-color: #1fb855;
+  }
+
+  .contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding-top: var(--spacing-lg);
+    border-top: var(--border-width) solid var(--color-border);
+  }
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .details-title {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .details-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+
+  .detail-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .detail-value {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    text-transform: capitalize;
+  }
+
+  /* Responsive - Mobile First */
+  @media (max-width: 767px) {
+    .property-detail {
+      padding: var(--spacing-lg) 0;
+    }
+
+    .property-title {
+      font-size: var(--font-size-2xl);
+    }
+
+    .property-price {
+      font-size: var(--font-size-3xl);
+    }
+
+    .property-gallery {
+      gap: var(--spacing-sm);
+    }
+
+    .gallery-main img {
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+
+    .gallery-thumbnails {
+      gap: var(--spacing-xs);
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .feature-card {
+      padding: var(--spacing-md);
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .sidebar {
+      padding: var(--spacing-md);
+    }
+
+    .contact-card {
+      padding: var(--spacing-md);
+    }
+
+    .contact-info {
+      font-size: var(--font-size-sm);
+    }
+
+    .contact-actions .btn {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-sm);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .property-header {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .property-content {
+      grid-template-columns: 1fr 350px;
+    }
+
+    .features-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

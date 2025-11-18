@@ -1,0 +1,366 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import PropiedadCard from '../components/PropiedadCard.astro';
+import Filtros from '../components/Filtros.astro';
+import { filtrarPropiedades } from '../data/propiedades';
+
+// Obtener parámetros de búsqueda
+const url = new URL(Astro.request.url);
+const filtros = {
+  zona: url.searchParams.get('zona') || undefined,
+  tipoOperacion: url.searchParams.get('tipoOperacion') || undefined,
+  tipoPropiedad: url.searchParams.get('tipoPropiedad') || undefined,
+  precioMin: url.searchParams.get('precioMin') ? Number(url.searchParams.get('precioMin')) : undefined,
+  precioMax: url.searchParams.get('precioMax') ? Number(url.searchParams.get('precioMax')) : undefined,
+  estado: url.searchParams.get('estado') || undefined,
+};
+
+// Filtrar propiedades
+let propiedadesFiltradas = filtrarPropiedades(filtros);
+
+// Ordenar
+const orden = url.searchParams.get('orden') || 'reciente';
+propiedadesFiltradas = propiedadesFiltradas.sort((a, b) => {
+  if (orden === 'precio-asc') return a.precio - b.precio;
+  if (orden === 'precio-desc') return b.precio - a.precio;
+  return 0; // reciente - asume que ya vienen ordenadas
+});
+
+// Función helper para construir URLs con parámetros
+function buildURL(params: Record<string, string | number | undefined>) {
+  const searchParams = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.set(key, String(value));
+    }
+  });
+  
+  return `?${searchParams.toString()}`;
+}
+
+// Paginación simple
+const paginaActual = Number(url.searchParams.get('pagina')) || 1;
+const propiedadesPorPagina = 9;
+const totalPaginas = Math.ceil(propiedadesFiltradas.length / propiedadesPorPagina);
+const inicio = (paginaActual - 1) * propiedadesPorPagina;
+const fin = inicio + propiedadesPorPagina;
+const propiedadesPaginadas = propiedadesFiltradas.slice(inicio, fin);
+---
+
+<Layout 
+  title="Catálogo de Propiedades" 
+  description="Explora nuestro catálogo completo de propiedades en venta y alquiler. Filtra por zona, precio, tipo y más."
+>
+  <Header />
+  
+  <main class="catalog-page">
+    <div class="container">
+      <div class="page-header">
+        <h1 class="page-title">Catálogo de Propiedades</h1>
+        <p class="page-subtitle">
+          {propiedadesFiltradas.length} {propiedadesFiltradas.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
+        </p>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filters-wrapper">
+        <Filtros showAdvanced={true} />
+      </div>
+
+      <!-- Resultados -->
+      <div class="results-section">
+        <!-- Barra de herramientas -->
+        <div class="toolbar">
+          <p class="results-count">
+            Mostrando {inicio + 1}-{Math.min(fin, propiedadesFiltradas.length)} de {propiedadesFiltradas.length}
+          </p>
+          
+          <form method="GET" class="sort-form">
+            {/* Mantener filtros actuales */}
+            {Object.entries(filtros).map(([key, value]) => 
+              value !== undefined && <input type="hidden" name={key} value={String(value)} />
+            )}
+            {paginaActual > 1 && <input type="hidden" name="pagina" value={String(paginaActual)} />}
+            
+            <label for="orden" class="sort-label">Ordenar por:</label>
+            <select id="orden" name="orden" class="sort-select" onchange="this.form.submit()">
+              <option value="reciente" selected={orden === 'reciente'}>Más recientes</option>
+              <option value="precio-asc" selected={orden === 'precio-asc'}>Precio: menor a mayor</option>
+              <option value="precio-desc" selected={orden === 'precio-desc'}>Precio: mayor a menor</option>
+            </select>
+          </form>
+        </div>
+
+        <!-- Grid de propiedades -->
+        {propiedadesPaginadas.length > 0 ? (
+          <div class="properties-grid">
+            {propiedadesPaginadas.map(propiedad => (
+              <PropiedadCard propiedad={propiedad} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+              <line x1="11" y1="8" x2="11" y2="14"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+            <h3>No se encontraron propiedades</h3>
+            <p>Intenta ajustar los filtros o buscar con otros criterios</p>
+            <a href="/propiedades" class="btn btn-primary">Ver todas las propiedades</a>
+          </div>
+        )}
+
+        <!-- Paginación -->
+        {totalPaginas > 1 && (
+          <nav class="pagination" aria-label="Paginación">
+            {paginaActual > 1 && (
+              <a 
+                href={buildURL({...filtros, orden, pagina: paginaActual - 1})}
+                class="pagination-link"
+              >
+                ← Anterior
+              </a>
+            )}
+
+            <div class="pagination-numbers">
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+                <a
+                  href={buildURL({...filtros, orden, pagina: num})}
+                  class:list={['pagination-number', { active: num === paginaActual }]}
+                >
+                  {num}
+                </a>
+              ))}
+            </div>
+
+            {paginaActual < totalPaginas && (
+              <a 
+                href={buildURL({...filtros, orden, pagina: paginaActual + 1})}
+                class="pagination-link"
+              >
+                Siguiente →
+              </a>
+            )}
+          </nav>
+        )}
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .catalog-page {
+    padding: var(--spacing-3xl) 0;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  .filters-wrapper {
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .results-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius-md);
+  }
+
+  .results-count {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  .sort-form {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .sort-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .sort-select {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background-color: var(--color-bg);
+    cursor: pointer;
+  }
+
+  .properties-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-xl);
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-4xl);
+    text-align: center;
+    color: var(--color-text-secondary);
+  }
+
+  .empty-state svg {
+    opacity: 0.5;
+  }
+
+  .empty-state h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .empty-state p {
+    font-size: var(--font-size-base);
+    margin: 0;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-xl) 0;
+  }
+
+  .pagination-link {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-primary);
+    text-decoration: none;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .pagination-link:hover {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-primary);
+  }
+
+  .pagination-numbers {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+
+  .pagination-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .pagination-number:hover {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+  }
+
+  .pagination-number.active {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  /* Responsive - Mobile */
+  @media (max-width: 767px) {
+    .page-header {
+      padding: var(--spacing-2xl) 0 var(--spacing-xl);
+    }
+
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+
+    .page-description {
+      font-size: var(--font-size-sm);
+    }
+
+    .results-count {
+      font-size: var(--font-size-sm);
+    }
+
+    .sort-controls {
+      gap: var(--spacing-xs);
+    }
+
+    .sort-label {
+      display: none;
+    }
+
+    .sort-select {
+      font-size: var(--font-size-sm);
+      padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .pagination {
+      gap: var(--spacing-xs);
+    }
+
+    .page-btn {
+      min-width: 36px;
+      height: 36px;
+      font-size: var(--font-size-sm);
+    }
+
+    .page-info {
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .toolbar {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+</style>
