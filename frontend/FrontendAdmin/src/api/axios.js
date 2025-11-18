@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Crear instancia de axios con configuración base
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'hhttps://3d11c480-8000.brs.devtunnels.ms/',
   timeout: 30000, // 30 segundos (opcional: aumentar de 10s a 30s)
   headers: {
     'Content-Type': 'application/json',

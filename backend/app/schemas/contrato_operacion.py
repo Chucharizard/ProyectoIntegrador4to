@@ -19,10 +19,12 @@ class ContratoOperacionBase(BaseModel):
 
 
 class ContratoOperacionCreate(ContratoOperacionBase):
-    @field_validator('fecha_fin_contrato', mode='before')
+    @field_validator('fecha_fin_contrato')
     def validar_fecha_fin(cls, v, info):
-        if v and info.data.get('fecha_inicio_contrato'):
-            if v < info.data['fecha_inicio_contrato']:
+        """Valida que fecha_fin sea posterior a fecha_inicio"""
+        if v is not None:
+            fecha_inicio = info.data.get('fecha_inicio_contrato')
+            if fecha_inicio and v < fecha_inicio:
                 raise ValueError('La fecha de fin debe ser posterior a la fecha de inicio')
         return v
     

@@ -17,6 +17,11 @@ import PropiedadesList from './pages/propiedades/PropiedadesList';
 import PropiedadForm from './pages/propiedades/PropiedadForm';
 import CitasList from './pages/citas/CitasList';
 import CitaForm from './pages/citas/CitaForm';
+import ContratosList from './pages/contratos/ContratosList';
+import ContratoForm from './pages/contratos/ContratoForm';
+import ContratoDetail from './pages/contratos/ContratoDetail';
+import PagosList from './pages/pagos/PagosList';
+import PagoForm from './pages/pagos/PagoForm';
 
 function App() {
   return (
@@ -103,15 +108,15 @@ function App() {
                     <Route path="/citas/editar/:id" element={<CitaForm />} />
                     
                     {/* Contratos */}
-                    <Route 
-                      path="/contratos" 
-                      element={
-                        <div className="p-8 text-center">
-                          <h2 className="text-2xl font-bold text-gray-800">Módulo Contratos</h2>
-                          <p className="text-gray-600 mt-2">Próximamente...</p>
-                        </div>
-                      } 
-                    />
+                    <Route path="/contratos" element={<ContratosList />} />
+                    <Route path="/contratos/nuevo" element={<ContratoForm />} />
+                    <Route path="/contratos/:id" element={<ContratoDetail />} />
+                    <Route path="/contratos/editar/:id" element={<ContratoForm />} />
+                    
+                    {/* Pagos */}
+                    <Route path="/pagos" element={<PagosList />} />
+                    <Route path="/pagos/nuevo" element={<PagoForm />} />
+                    <Route path="/pagos/editar/:id" element={<PagoForm />} />
                     
                     {/* Visitas */}
                     <Route 

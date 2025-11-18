@@ -3,8 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { propiedadService } from '../../services/propiedadService';
 import { propietarioService } from '../../services/propietarioService';
 import { direccionService } from '../../services/direccionService';
-import { ArrowLeftIcon, MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, HomeIcon, CurrencyDollarIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
+// ✨ Importar componentes reutilizables
+import BackButton from '../../components/shared/BackButton';
+import FormCard from '../../components/shared/FormCard';
 
 const PropiedadForm = () => {
   const { id } = useParams();
@@ -15,29 +19,18 @@ const PropiedadForm = () => {
   const [propietarios, setPropietarios] = useState([]);
   
   const [formData, setFormData] = useState({
-    // Datos básicos
     titulo_propiedad: '',
     codigo_publico_propiedad: '',
     descripcion_propiedad: '',
     ci_propietario: '',
-    
-    // Tipo y estado
     tipo_operacion_propiedad: '',
     estado_propiedad: 'Captada',
-    
-    // Precio y superficie
     precio_publicado_propiedad: '',
     superficie_propiedad: '',
-    
-    // Porcentajes
     porcentaje_captacion_propiedad: '',
     porcentaje_colocacion_propiedad: '',
-    
-    // Fechas
     fecha_captacion_propiedad: '',
     fecha_publicacion_propiedad: '',
-    
-    // Dirección (se creará automáticamente)
     calle_direccion: '',
     numero_calle_direccion: '',
     barrio_direccion: '',
@@ -57,14 +50,12 @@ const PropiedadForm = () => {
         setLoading(true);
 
         if (isEditMode) {
-          // Modo edición: cargar propiedad, propietarios y dirección
           const [propiedadData, propietariosData] = await Promise.all([
             propiedadService.getById(id, controller.signal),
             propietarioService.getAll(controller.signal)
           ]);
 
           if (isMounted) {
-            // Cargar dirección de la propiedad
             let direccionData = null;
             if (propiedadData.id_direccion) {
               direccionData = await direccionService.getById(propiedadData.id_direccion, controller.signal);
@@ -83,8 +74,6 @@ const PropiedadForm = () => {
               porcentaje_colocacion_propiedad: propiedadData.porcentaje_colocacion_propiedad || '',
               fecha_captacion_propiedad: propiedadData.fecha_captacion_propiedad || '',
               fecha_publicacion_propiedad: propiedadData.fecha_publicacion_propiedad || '',
-              
-              // Dirección
               calle_direccion: direccionData?.calle_direccion || '',
               numero_calle_direccion: direccionData?.numero_calle_direccion || '',
               barrio_direccion: direccionData?.barrio_direccion || '',
@@ -97,7 +86,6 @@ const PropiedadForm = () => {
             setPropietarios(propietariosData);
           }
         } else {
-          // Modo creación: solo cargar propietarios
           const propietariosData = await propietarioService.getAll(controller.signal);
           
           if (isMounted) {
@@ -177,7 +165,6 @@ const PropiedadForm = () => {
     try {
       setLoading(true);
 
-      // Preparar objeto de dirección
       const direccionData = {
         calle_direccion: formData.calle_direccion,
         numero_calle_direccion: formData.numero_calle_direccion || null,
@@ -189,7 +176,6 @@ const PropiedadForm = () => {
         longitud_direccion: formData.longitud_direccion ? parseFloat(formData.longitud_direccion) : null
       };
 
-      // Preparar objeto de propiedad
       const propiedadData = {
         titulo_propiedad: formData.titulo_propiedad,
         codigo_publico_propiedad: formData.codigo_publico_propiedad || null,
@@ -203,7 +189,7 @@ const PropiedadForm = () => {
         porcentaje_colocacion_propiedad: formData.porcentaje_colocacion_propiedad ? parseFloat(formData.porcentaje_colocacion_propiedad) : null,
         fecha_captacion_propiedad: formData.fecha_captacion_propiedad || null,
         fecha_publicacion_propiedad: formData.fecha_publicacion_propiedad || null,
-        direccion: direccionData  // El backend creará la dirección automáticamente
+        direccion: direccionData
       };
 
       if (isEditMode) {
@@ -230,422 +216,440 @@ const PropiedadForm = () => {
   if (loading && isEditMode) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-800 border-t-green-500"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-green-500/20 animate-pulse"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-[1400px] mx-auto"> {/* ✨ Ancho máximo aumentado */}
       {/* Header */}
       <div className="mb-6">
-        <button
-          onClick={() => navigate('/propiedades')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <ArrowLeftIcon className="h-5 w-5" />
-          Volver a Propiedades
-        </button>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <BackButton to="/propiedades" label="Volver a Propiedades" />
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
           {isEditMode ? 'Editar Propiedad' : 'Nueva Propiedad'}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-400 mt-1">
           {isEditMode ? 'Actualiza la información de la propiedad' : 'Completa el formulario para agregar una nueva propiedad'}
         </p>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Información Básica */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <HomeIcon className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Información Básica</h2>
-          </div>
+      <form onSubmit={handleSubmit}>
+        {/* ✨ Layout de 2 COLUMNAS en pantallas grandes */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Título */}
-            <div className="md:col-span-2">
-              <label htmlFor="titulo_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Título de la Propiedad <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="titulo_propiedad"
-                name="titulo_propiedad"
-                value={formData.titulo_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: Casa moderna en zona residencial"
-              />
-            </div>
+          {/* 📋 COLUMNA IZQUIERDA */}
+          <div className="space-y-6">
+            
+            {/* Información Básica */}
+            <FormCard>
+              <div className="flex items-center gap-2 mb-4">
+                <HomeIcon className="h-6 w-6 text-green-400" />
+                <h2 className="text-xl font-semibold text-green-400">Información Básica</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Título */}
+                <div>
+                  <label htmlFor="titulo_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Título de la Propiedad <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="titulo_propiedad"
+                    name="titulo_propiedad"
+                    value={formData.titulo_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="Ej: Casa moderna en zona residencial"
+                  />
+                </div>
 
-            {/* Código Público */}
-            <div>
-              <label htmlFor="codigo_publico_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Código Público
-              </label>
-              <input
-                type="text"
-                id="codigo_publico_propiedad"
-                name="codigo_publico_propiedad"
-                value={formData.codigo_publico_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: PROP-2024-001"
-              />
-            </div>
+                {/* Código y Propietario en 2 columnas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="codigo_publico_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                      Código Público
+                    </label>
+                    <input
+                      type="text"
+                      id="codigo_publico_propiedad"
+                      name="codigo_publico_propiedad"
+                      value={formData.codigo_publico_propiedad}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                      placeholder="PROP-2024-001"
+                    />
+                  </div>
 
-            {/* Propietario */}
-            <div>
-              <label htmlFor="ci_propietario" className="block text-sm font-medium text-gray-700 mb-1">
-                Propietario <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="ci_propietario"
-                name="ci_propietario"
-                value={formData.ci_propietario}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Seleccionar propietario</option>
-                {propietarios.map(prop => (
-                  <option key={prop.ci_propietario} value={prop.ci_propietario}>
-                    {prop.nombres_completo_propietario} {prop.apellidos_completo_propietario} - CI: {prop.ci_propietario}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  <div>
+                    <label htmlFor="estado_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                      Estado
+                    </label>
+                    <select
+                      id="estado_propiedad"
+                      name="estado_propiedad"
+                      value={formData.estado_propiedad}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    >
+                      <option value="Captada">Captada</option>
+                      <option value="Publicada">Publicada</option>
+                      <option value="Reservada">Reservada</option>
+                      <option value="Cerrada">Cerrada</option>
+                    </select>
+                  </div>
+                </div>
 
-            {/* Tipo de Operación */}
-            <div>
-              <label htmlFor="tipo_operacion_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Tipo de Operación <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="tipo_operacion_propiedad"
-                name="tipo_operacion_propiedad"
-                value={formData.tipo_operacion_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Seleccionar tipo</option>
-                <option value="Venta">Venta</option>
-                <option value="Alquiler">Alquiler</option>
-                <option value="Anticrético">Anticrético</option>
-              </select>
-            </div>
+                {/* Propietario */}
+                <div>
+                  <label htmlFor="ci_propietario" className="block text-sm font-medium text-green-400 mb-2">
+                    Propietario <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    id="ci_propietario"
+                    name="ci_propietario"
+                    value={formData.ci_propietario}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  >
+                    <option value="">Seleccionar propietario</option>
+                    {propietarios.map(prop => (
+                      <option key={prop.ci_propietario} value={prop.ci_propietario}>
+                        {prop.nombres_completo_propietario} {prop.apellidos_completo_propietario} - CI: {prop.ci_propietario}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Estado */}
-            <div>
-              <label htmlFor="estado_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Estado
-              </label>
-              <select
-                id="estado_propiedad"
-                name="estado_propiedad"
-                value={formData.estado_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="Captada">Captada</option>
-                <option value="Publicada">Publicada</option>
-                <option value="Reservada">Reservada</option>
-                <option value="Cerrada">Cerrada</option>
-              </select>
-            </div>
+                {/* Tipo de Operación */}
+                <div>
+                  <label htmlFor="tipo_operacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Tipo de Operación <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    id="tipo_operacion_propiedad"
+                    name="tipo_operacion_propiedad"
+                    value={formData.tipo_operacion_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  >
+                    <option value="">Seleccionar tipo</option>
+                    <option value="Venta">Venta</option>
+                    <option value="Alquiler">Alquiler</option>
+                    <option value="Anticrético">Anticrético</option>
+                  </select>
+                </div>
 
-            {/* Descripción */}
-            <div className="md:col-span-2">
-              <label htmlFor="descripcion_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </label>
-              <textarea
-                id="descripcion_propiedad"
-                name="descripcion_propiedad"
-                value={formData.descripcion_propiedad}
-                onChange={handleChange}
-                rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Describe las características de la propiedad..."
-              />
-            </div>
+                {/* Descripción */}
+                <div>
+                  <label htmlFor="descripcion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    id="descripcion_propiedad"
+                    name="descripcion_propiedad"
+                    value={formData.descripcion_propiedad}
+                    onChange={handleChange}
+                    rows="4"
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all resize-none"
+                    placeholder="Describe las características de la propiedad..."
+                  />
+                </div>
+              </div>
+            </FormCard>
+
+            {/* Precio y Superficie */}
+            <FormCard>
+              <div className="flex items-center gap-2 mb-4">
+                <CurrencyDollarIcon className="h-6 w-6 text-green-400" />
+                <h2 className="text-xl font-semibold text-green-400">Precio y Superficie</h2>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="precio_publicado_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Precio (Bs.)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="precio_publicado_propiedad"
+                    name="precio_publicado_propiedad"
+                    value={formData.precio_publicado_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="250000.00"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="superficie_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Superficie (m²)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="superficie_propiedad"
+                    name="superficie_propiedad"
+                    value={formData.superficie_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="150.50"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="porcentaje_captacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    % Captación
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="porcentaje_captacion_propiedad"
+                    name="porcentaje_captacion_propiedad"
+                    value={formData.porcentaje_captacion_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="3.00"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="porcentaje_colocacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    % Colocación
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="porcentaje_colocacion_propiedad"
+                    name="porcentaje_colocacion_propiedad"
+                    value={formData.porcentaje_colocacion_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="2.50"
+                  />
+                </div>
+              </div>
+            </FormCard>
+
+           
+          </div>
+
+          {/* 📋 COLUMNA DERECHA */}
+          <div className="space-y-6">
+            
+            {/* Ubicación */}
+            <FormCard>
+              <div className="flex items-center gap-2 mb-4">
+                <MapPinIcon className="h-6 w-6 text-green-400" />
+                <h2 className="text-xl font-semibold text-green-400">Ubicación</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Calle y Número */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <label htmlFor="calle_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                      Calle <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="calle_direccion"
+                      name="calle_direccion"
+                      value={formData.calle_direccion}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                      placeholder="Av. 6 de Agosto"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="numero_calle_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                      Número
+                    </label>
+                    <input
+                      type="text"
+                      id="numero_calle_direccion"
+                      name="numero_calle_direccion"
+                      value={formData.numero_calle_direccion}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                      placeholder="1234"
+                    />
+                  </div>
+                </div>
+
+                {/* Barrio */}
+                <div>
+                  <label htmlFor="barrio_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                    Barrio/Zona
+                  </label>
+                  <input
+                    type="text"
+                    id="barrio_direccion"
+                    name="barrio_direccion"
+                    value={formData.barrio_direccion}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="San Miguel"
+                  />
+                </div>
+
+                {/* Ciudad y Departamento */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="ciudad_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                      Ciudad <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="ciudad_direccion"
+                      name="ciudad_direccion"
+                      value={formData.ciudad_direccion}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                      placeholder="La Paz"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="departamento_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                      Departamento <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      id="departamento_direccion"
+                      name="departamento_direccion"
+                      value={formData.departamento_direccion}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="La Paz">La Paz</option>
+                      <option value="Cochabamba">Cochabamba</option>
+                      <option value="Santa Cruz">Santa Cruz</option>
+                      <option value="Oruro">Oruro</option>
+                      <option value="Potosí">Potosí</option>
+                      <option value="Tarija">Tarija</option>
+                      <option value="Chuquisaca">Chuquisaca</option>
+                      <option value="Beni">Beni</option>
+                      <option value="Pando">Pando</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Código Postal */}
+                <div>
+                  <label htmlFor="codigo_postal_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                    Código Postal
+                  </label>
+                  <input
+                    type="text"
+                    id="codigo_postal_direccion"
+                    name="codigo_postal_direccion"
+                    value={formData.codigo_postal_direccion}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="10101"
+                  />
+                </div>
+
+                {/* Coordenadas GPS */}
+                <div>
+                  <p className="text-sm font-medium text-green-400 mb-2">Coordenadas GPS (Opcional)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="latitud_direccion" className="block text-xs text-gray-400 mb-1">
+                        Latitud
+                      </label>
+                      <input
+                        type="number"
+                        step="0.000001"
+                        id="latitud_direccion"
+                        name="latitud_direccion"
+                        value={formData.latitud_direccion}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                        placeholder="-16.500000"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="longitud_direccion" className="block text-xs text-gray-400 mb-1">
+                        Longitud
+                      </label>
+                      <input
+                        type="number"
+                        step="0.000001"
+                        id="longitud_direccion"
+                        name="longitud_direccion"
+                        value={formData.longitud_direccion}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                        placeholder="-68.150000"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </FormCard>
+
+             {/* Fechas */}
+            <FormCard>
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarIcon className="h-6 w-6 text-green-400" />
+                <h2 className="text-xl font-semibold text-green-400">Fechas</h2>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="fecha_captacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Fecha Captación
+                  </label>
+                  <input
+                    type="date"
+                    id="fecha_captacion_propiedad"
+                    name="fecha_captacion_propiedad"
+                    value={formData.fecha_captacion_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="fecha_publicacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
+                    Fecha Publicación
+                  </label>
+                  <input
+                    type="date"
+                    id="fecha_publicacion_propiedad"
+                    name="fecha_publicacion_propiedad"
+                    value={formData.fecha_publicacion_propiedad}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  />
+                </div>
+              </div>
+            </FormCard>
           </div>
         </div>
 
-        {/* Precio y Superficie */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Precio y Superficie</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Precio */}
-            <div>
-              <label htmlFor="precio_publicado_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Precio Publicado (Bs.)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                id="precio_publicado_propiedad"
-                name="precio_publicado_propiedad"
-                value={formData.precio_publicado_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 250000.00"
-              />
-            </div>
-
-            {/* Superficie */}
-            <div>
-              <label htmlFor="superficie_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Superficie (m²)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                id="superficie_propiedad"
-                name="superficie_propiedad"
-                value={formData.superficie_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 150.50"
-              />
-            </div>
-
-            {/* Porcentaje Captación */}
-            <div>
-              <label htmlFor="porcentaje_captacion_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Porcentaje Captación (%)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                id="porcentaje_captacion_propiedad"
-                name="porcentaje_captacion_propiedad"
-                value={formData.porcentaje_captacion_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 3.00"
-              />
-            </div>
-
-            {/* Porcentaje Colocación */}
-            <div>
-              <label htmlFor="porcentaje_colocacion_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Porcentaje Colocación (%)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                id="porcentaje_colocacion_propiedad"
-                name="porcentaje_colocacion_propiedad"
-                value={formData.porcentaje_colocacion_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 2.50"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Fechas */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Fechas</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Fecha Captación */}
-            <div>
-              <label htmlFor="fecha_captacion_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Captación
-              </label>
-              <input
-                type="date"
-                id="fecha_captacion_propiedad"
-                name="fecha_captacion_propiedad"
-                value={formData.fecha_captacion_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Fecha Publicación */}
-            <div>
-              <label htmlFor="fecha_publicacion_propiedad" className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Publicación
-              </label>
-              <input
-                type="date"
-                id="fecha_publicacion_propiedad"
-                name="fecha_publicacion_propiedad"
-                value={formData.fecha_publicacion_propiedad}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Dirección */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <MapPinIcon className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Ubicación</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Calle */}
-            <div>
-              <label htmlFor="calle_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Calle <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="calle_direccion"
-                name="calle_direccion"
-                value={formData.calle_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: Av. 6 de Agosto"
-              />
-            </div>
-
-            {/* Número */}
-            <div>
-              <label htmlFor="numero_calle_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Número
-              </label>
-              <input
-                type="text"
-                id="numero_calle_direccion"
-                name="numero_calle_direccion"
-                value={formData.numero_calle_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 1234"
-              />
-            </div>
-
-            {/* Barrio */}
-            <div>
-              <label htmlFor="barrio_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Barrio/Zona
-              </label>
-              <input
-                type="text"
-                id="barrio_direccion"
-                name="barrio_direccion"
-                value={formData.barrio_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: San Miguel"
-              />
-            </div>
-
-            {/* Ciudad */}
-            <div>
-              <label htmlFor="ciudad_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Ciudad <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="ciudad_direccion"
-                name="ciudad_direccion"
-                value={formData.ciudad_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: La Paz"
-              />
-            </div>
-
-            {/* Departamento */}
-            <div>
-              <label htmlFor="departamento_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Departamento <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="departamento_direccion"
-                name="departamento_direccion"
-                value={formData.departamento_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Seleccionar departamento</option>
-                <option value="La Paz">La Paz</option>
-                <option value="Cochabamba">Cochabamba</option>
-                <option value="Santa Cruz">Santa Cruz</option>
-                <option value="Oruro">Oruro</option>
-                <option value="Potosí">Potosí</option>
-                <option value="Tarija">Tarija</option>
-                <option value="Chuquisaca">Chuquisaca</option>
-                <option value="Beni">Beni</option>
-                <option value="Pando">Pando</option>
-              </select>
-            </div>
-
-            {/* Código Postal */}
-            <div>
-              <label htmlFor="codigo_postal_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Código Postal
-              </label>
-              <input
-                type="text"
-                id="codigo_postal_direccion"
-                name="codigo_postal_direccion"
-                value={formData.codigo_postal_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: 10101"
-              />
-            </div>
-
-            {/* Coordenadas GPS (opcional para futuro) */}
-            <div>
-              <label htmlFor="latitud_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Latitud (GPS)
-              </label>
-              <input
-                type="number"
-                step="0.000001"
-                id="latitud_direccion"
-                name="latitud_direccion"
-                value={formData.latitud_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: -16.500000"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="longitud_direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Longitud (GPS)
-              </label>
-              <input
-                type="number"
-                step="0.000001"
-                id="longitud_direccion"
-                name="longitud_direccion"
-                value={formData.longitud_direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: -68.150000"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-4">
+        {/* Buttons - Fuera del grid, full width */}
+        <div className="flex gap-4 mt-6">
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-300 shadow-lg shadow-green-500/30 hover:shadow-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {loading ? 'Guardando...' : isEditMode ? 'Actualizar Propiedad' : 'Crear Propiedad'}
           </button>
           <button
             type="button"
             onClick={() => navigate('/propiedades')}
-            className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            className="flex-1 bg-gray-700/50 text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-700 transition-all duration-300 font-medium border border-gray-600"
           >
             Cancelar
           </button>

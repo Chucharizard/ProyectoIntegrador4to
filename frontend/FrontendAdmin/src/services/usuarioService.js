@@ -9,7 +9,10 @@ export const usuarioService = {
       const response = await axiosInstance.get(BASE_URL, { signal });
       return response.data;
     } catch (error) {
-      console.error('Error fetching usuarios:', error);
+      // No loguear errores de cancelación
+      if (error.code !== 'ERR_CANCELED' && error.name !== 'CanceledError') {
+        console.error('Error fetching usuarios:', error);
+      }
       throw error;
     }
   },

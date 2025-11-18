@@ -8,6 +8,7 @@ import {
   BuildingOfficeIcon,
   DocumentTextIcon,
   CalendarIcon,
+  CurrencyDollarIcon,
   ShieldCheckIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
@@ -184,6 +185,12 @@ const Sidebar = () => {
       name: 'Contratos',
       path: '/contratos',
       icon: DocumentTextIcon,
+      roles: [1, 2],
+    },
+    {
+      name: 'Pagos',
+      path: '/pagos',
+      icon: CurrencyDollarIcon,
       roles: [1, 2],
     },
   ];

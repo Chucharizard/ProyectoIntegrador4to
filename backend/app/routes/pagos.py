@@ -1,9 +1,14 @@
+"""
+Router para endpoints de Pagos con PAGINACIÓN
+"""
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from datetime import date
 from app.schemas.pago import PagoCreate, PagoUpdate, PagoResponse
+from app.schemas.pagination import PaginatedResponse, create_paginated_response
 from app.database import get_supabase_client
 from app.utils.dependencies import get_current_active_user
+
 
 router = APIRouter()
 
@@ -13,17 +18,7 @@ async def registrar_pago(
     pago: PagoCreate,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Registra un nuevo pago asociado a un contrato.
-    
-    - **id_contrato_operacion**: ID del contrato al que pertenece el pago
-    - **monto_pago**: Monto del pago (debe ser > 0)
-    - **fecha_pago**: Fecha en que se realizó o realizará el pago
-    - **numero_cuota_pago**: Número de cuota (opcional, para pagos en cuotas)
-    - **estado_pago**: Pendiente, Pagado, Atrasado, Cancelado
-    
-    💡 El sistema validará que el contrato exista y esté activo
-    """
+    """Registra un nuevo pago asociado a un contrato."""
     supabase = get_supabase_client()
     
     try:
@@ -32,7 +27,6 @@ async def registrar_pago(
         if not contrato.data:
             raise HTTPException(status_code=404, detail="El contrato especificado no existe")
         
-        # Solo permitir pagos en contratos activos
         if contrato.data[0].get("estado_contrato") != "Activo":
             raise HTTPException(status_code=400, detail="Solo se pueden registrar pagos en contratos activos")
         
@@ -44,20 +38,17 @@ async def registrar_pago(
         if total_pagado + float(pago.monto_pago) > precio_contrato:
             raise HTTPException(
                 status_code=400, 
-                detail=f"El monto total de pagos ({total_pagado + float(pago.monto_pago)}) excedería el precio del contrato ({precio_contrato})"
+                detail=f"El monto total de pagos excedería el precio del contrato"
             )
         
-        # Preparar datos para inserción
+        # Preparar datos
         pago_data = pago.model_dump()
-        
-        # Convertir Decimal a float
         pago_data["monto_pago"] = float(pago_data["monto_pago"])
         
-        # Convertir date a string
         if pago_data.get("fecha_pago"):
             pago_data["fecha_pago"] = pago_data["fecha_pago"].isoformat()
         
-        # Insertar pago
+        # Insertar
         result = supabase.table("pago").insert(pago_data).execute()
         
         if not result.data:
@@ -68,41 +59,116 @@ async def registrar_pago(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
-@router.get("/pagos/", response_model=List[PagoResponse])
-async def listar_pagos(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+# ✅ ENDPOINT CON PAGINACIÓN (SIMPLIFICADO)
+@router.get("/pagos/", response_model=PaginatedResponse[PagoResponse])
+async def listar_pagos_paginados(
+    page: int = Query(1, ge=1, description="Número de página"),
+    page_size: int = Query(30, ge=1, le=100, description="Items por página"),
     id_contrato: Optional[str] = Query(None, description="Filtrar por contrato"),
     estado: Optional[str] = Query(None, description="Filtrar por estado"),
     current_user = Depends(get_current_active_user)
 ):
     """
-    Lista todos los pagos con filtros opcionales.
+    Lista todos los pagos con paginación.
     
-    Filtros disponibles:
-    - **id_contrato**: ID del contrato
-    - **estado**: Pendiente, Pagado, Atrasado, Cancelado
+    - **page**: Número de página (default: 1)
+    - **page_size**: Items por página (default: 30, max: 100)
+    - **id_contrato**: Filtrar por ID de contrato
+    - **estado**: Filtrar por estado (Pendiente, Pagado, Atrasado, Cancelado)
     """
     supabase = get_supabase_client()
     
     try:
-        query = supabase.table("pago").select("*")
+        # 🔹 PASO 1: Obtener TODOS los datos (para contar)
+        query_all = supabase.table("pago").select("id_pago")
         
         if id_contrato:
-            query = query.eq("id_contrato_operacion", id_contrato)
+            query_all = query_all.eq("id_contrato_operacion", id_contrato)
         if estado:
-            query = query.eq("estado_pago", estado)
+            query_all = query_all.eq("estado_pago", estado)
         
-        query = query.order("fecha_pago", desc=True).range(skip, skip + limit - 1)
-        result = query.execute()
+        all_items = query_all.execute()
+        total = len(all_items.data)
         
-        return result.data
+        # 🔹 PASO 2: Obtener datos paginados
+        skip = (page - 1) * page_size
+        
+        query_paginated = supabase.table("pago").select("*")
+        
+        if id_contrato:
+            query_paginated = query_paginated.eq("id_contrato_operacion", id_contrato)
+        if estado:
+            query_paginated = query_paginated.eq("estado_pago", estado)
+        
+        query_paginated = query_paginated.order("fecha_pago", desc=True).range(skip, skip + page_size - 1)
+        
+        result = query_paginated.execute()
+        
+        # 🔹 PASO 3: Crear respuesta paginada
+        return create_paginated_response(
+            items=result.data,
+            total=total,
+            page=page,
+            page_size=page_size
+        )
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar pagos: {str(e)}")
+
+
+# ✅ ENDPOINT PARA DASHBOARD (OPTIMIZADO)
+@router.get("/pagos/dashboard", response_model=List[PagoResponse])
+async def listar_pagos_dashboard(
+    limit: int = Query(30, ge=1, le=100),
+    current_user = Depends(get_current_active_user)
+):
+    """
+    Endpoint optimizado para el dashboard.
+    Devuelve solo los últimos N pagos.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        result = (
+            supabase.table("pago")
+            .select("*")
+            .order("fecha_pago", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return result.data
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.get("/pagos/atrasados/lista")
+async def listar_pagos_atrasados(
+    current_user = Depends(get_current_active_user)
+):
+    """Lista pagos pendientes cuya fecha ya pasó."""
+    supabase = get_supabase_client()
+    
+    try:
+        hoy = date.today().isoformat()
+        result = (
+            supabase.table("pago")
+            .select("*")
+            .eq("estado_pago", "Pendiente")
+            .lt("fecha_pago", hoy)
+            .execute()
+        )
+        
+        return {
+            "total_atrasados": len(result.data),
+            "pagos": result.data
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @router.get("/pagos/{id_pago}", response_model=PagoResponse)
@@ -110,9 +176,7 @@ async def obtener_pago(
     id_pago: str,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Obtiene los detalles de un pago específico por su ID.
-    """
+    """Obtiene un pago específico por ID."""
     supabase = get_supabase_client()
     
     try:
@@ -126,7 +190,7 @@ async def obtener_pago(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener el pago: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @router.put("/pagos/{id_pago}", response_model=PagoResponse)
@@ -135,30 +199,24 @@ async def actualizar_pago(
     pago: PagoUpdate,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Actualiza los datos de un pago existente.
-    
-    ⚠️ Típicamente se usa para cambiar el estado a "Pagado" cuando se confirma el pago
-    """
+    """Actualiza un pago existente."""
     supabase = get_supabase_client()
     
     try:
-        # Verificar que el pago existe
+        # Verificar que existe
         pago_actual = supabase.table("pago").select("*").eq("id_pago", id_pago).execute()
         if not pago_actual.data:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
         
-        # Preparar datos para actualización (solo campos no None)
+        # Preparar datos
         pago_data = pago.model_dump(exclude_unset=True)
         
         if not pago_data:
-            raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
+            raise HTTPException(status_code=400, detail="No hay datos para actualizar")
         
-        # Convertir Decimal a float
         if "monto_pago" in pago_data and pago_data["monto_pago"]:
             pago_data["monto_pago"] = float(pago_data["monto_pago"])
         
-        # Convertir date a string
         if "fecha_pago" in pago_data and pago_data["fecha_pago"]:
             pago_data["fecha_pago"] = pago_data["fecha_pago"].isoformat()
         
@@ -166,14 +224,14 @@ async def actualizar_pago(
         result = supabase.table("pago").update(pago_data).eq("id_pago", id_pago).execute()
         
         if not result.data:
-            raise HTTPException(status_code=500, detail="Error al actualizar el pago")
+            raise HTTPException(status_code=500, detail="Error al actualizar")
         
         return result.data[0]
     
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar el pago: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @router.delete("/pagos/{id_pago}", status_code=204)
@@ -181,58 +239,31 @@ async def eliminar_pago(
     id_pago: str,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Elimina un pago.
-    
-    ⚠️ Solo se recomienda eliminar pagos en estado "Pendiente" o "Cancelado"
-    """
+    """Elimina un pago."""
     supabase = get_supabase_client()
     
     try:
-        # Verificar que el pago existe
+        # Verificar que existe
         pago = supabase.table("pago").select("estado_pago").eq("id_pago", id_pago).execute()
         if not pago.data:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
         
-        # Advertir si se intenta eliminar un pago confirmado
+        # Validar estado
         if pago.data[0].get("estado_pago") == "Pagado":
-            raise HTTPException(status_code=400, detail="No se recomienda eliminar pagos ya confirmados. Considere cambiar el estado a 'Cancelado'")
+            raise HTTPException(
+                status_code=400, 
+                detail="No se puede eliminar un pago confirmado"
+            )
         
         # Eliminar
         result = supabase.table("pago").delete().eq("id_pago", id_pago).execute()
         
         if not result.data:
-            raise HTTPException(status_code=500, detail="Error al eliminar el pago")
+            raise HTTPException(status_code=500, detail="Error al eliminar")
         
         return None
     
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar el pago: {str(e)}")
-
-
-@router.get("/pagos/atrasados/lista")
-async def listar_pagos_atrasados(
-    current_user = Depends(get_current_active_user)
-):
-    """
-    Lista todos los pagos pendientes cuya fecha de pago ya pasó.
-    
-    Útil para identificar pagos morosos automáticamente.
-    """
-    supabase = get_supabase_client()
-    
-    try:
-        hoy = date.today().isoformat()
-        
-        # Buscar pagos pendientes con fecha anterior a hoy
-        result = supabase.table("pago").select("*").eq("estado_pago", "Pendiente").lt("fecha_pago", hoy).execute()
-        
-        return {
-            "total_atrasados": len(result.data),
-            "pagos": result.data
-        }
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar pagos atrasados: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

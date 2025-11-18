@@ -1,5 +1,5 @@
 import axiosInstance from '../api/axios';
-import { propietariosCache } from '../utils/propietariosCache';
+import { propietariosCache } from '../utils/cache'; // ✅ CAMBIO AQUÍ
 
 const BASE_URL = '/propietarios/';
 
@@ -22,7 +22,9 @@ export const propietarioService = {
       
       return response.data;
     } catch (error) {
-      console.error('Error fetching propietarios:', error);
+      if (error.code !== 'ERR_CANCELED' && error.name !== 'CanceledError') {
+        console.error('Error fetching propietarios:', error);
+      }
       throw error;
     }
   },

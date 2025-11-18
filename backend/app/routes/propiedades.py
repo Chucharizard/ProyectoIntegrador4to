@@ -2,35 +2,21 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from app.schemas.propiedad import PropiedadCreate, PropiedadUpdate, PropiedadResponse
 from app.database import get_supabase_client
-from app.utils.dependencies import get_current_active_user
+from app.utils.dependencies import (
+    get_current_active_user,
+    get_propiedades_cached,
+    set_propiedades_cached,
+    clear_propiedades_cache
+)
 
 router = APIRouter()
-
 
 @router.post("/propiedades/", response_model=PropiedadResponse, status_code=201)
 async def crear_propiedad(
     propiedad: PropiedadCreate,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Crea una nueva propiedad en el sistema.
-    
-    **Puedes proporcionar la dirección de DOS formas:**
-    
-    1. **Dirección existente:** Proporciona `id_direccion`
-    2. **Nueva dirección:** Proporciona objeto `direccion` (se crea automáticamente)
-    
-    **Campos:**
-    - **ci_propietario**: CI del propietario (debe existir)
-    - **titulo_propiedad**: Título de la propiedad
-    - **descripcion_propiedad**: Descripción detallada (opcional)
-    - **precio_publicado_propiedad**: Precio publicado (opcional)
-    - **superficie_propiedad**: Superficie en m² (opcional)
-    - **tipo_operacion_propiedad**: "Venta", "Alquiler" o "Anticrético" (opcional)
-    - **estado_propiedad**: "Captada", "Publicada", "Reservada", "Cerrada" (opcional)
-    
-    El `id_usuario_captador` se asigna automáticamente del usuario autenticado.
-    """
+    """Crea una nueva propiedad en el sistema."""
     supabase = get_supabase_client()
     
     try:
@@ -46,7 +32,6 @@ async def crear_propiedad(
             if direccion_data.get("longitud_direccion") is not None:
                 direccion_data["longitud_direccion"] = float(direccion_data["longitud_direccion"])
             
-            # Crear dirección
             result_dir = supabase.table("direccion").insert(direccion_data).execute()
             if not result_dir.data:
                 raise HTTPException(status_code=500, detail="Error al crear la dirección")
@@ -74,8 +59,6 @@ async def crear_propiedad(
         # Preparar datos de la propiedad
         propiedad_data = propiedad.model_dump(exclude={"direccion"})
         propiedad_data["id_direccion"] = direccion_id
-        
-        # Asignar usuario captador automáticamente
         propiedad_data["id_usuario_captador"] = current_user["id_usuario"]
         
         # Convertir Decimales a float
@@ -102,7 +85,9 @@ async def crear_propiedad(
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al crear la propiedad")
         
-        # Obtener propiedad con dirección incluida
+        # ✅ Invalidar caché
+        clear_propiedades_cache()
+        
         propiedad_creada = result.data[0]
         direccion = supabase.table("direccion").select("*").eq("id_direccion", direccion_id).execute()
         if direccion.data:
@@ -115,27 +100,26 @@ async def crear_propiedad(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
-
 @router.get("/propiedades/", response_model=List[PropiedadResponse])
 async def listar_propiedades(
-    skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a devolver"),
-    tipo_operacion: Optional[str] = Query(None, description="Filtrar por tipo de operación"),
-    estado: Optional[str] = Query(None, description="Filtrar por estado"),
-    precio_min: Optional[float] = Query(None, description="Precio mínimo"),
-    precio_max: Optional[float] = Query(None, description="Precio máximo"),
-    mis_captaciones: bool = Query(False, description="Solo propiedades captadas por mí"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    tipo_operacion: Optional[str] = Query(None),
+    estado: Optional[str] = Query(None),
+    precio_min: Optional[float] = Query(None),
+    precio_max: Optional[float] = Query(None),
+    mis_captaciones: bool = Query(False),
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Lista todas las propiedades del sistema con paginación y filtros.
+    """Lista todas las propiedades CON CACHÉ"""
     
-    **Filtros disponibles:**
-    - **tipo_operacion**: "Venta", "Alquiler", "Anticrético"
-    - **estado**: "Captada", "Publicada", "Reservada", "Cerrada"
-    - **precio_min** y **precio_max**: Rango de precios
-    - **mis_captaciones**: Solo propiedades que yo capté
-    """
+    # ✅ Intentar caché solo para consulta básica sin filtros
+    if (skip == 0 and limit == 100 and not tipo_operacion and not estado and 
+        not precio_min and not precio_max and not mis_captaciones):
+        cached = get_propiedades_cached()
+        if cached:
+            return cached
+    
     supabase = get_supabase_client()
     
     try:
@@ -167,20 +151,22 @@ async def listar_propiedades(
             if direccion.data:
                 propiedad["direccion"] = direccion.data[0]
         
+        # ✅ Guardar en caché solo consulta básica
+        if (skip == 0 and limit == 100 and not tipo_operacion and not estado and 
+            not precio_min and not precio_max and not mis_captaciones):
+            set_propiedades_cached(propiedades)
+        
         return propiedades
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener propiedades: {str(e)}")
-
 
 @router.get("/propiedades/{id_propiedad}", response_model=PropiedadResponse)
 async def obtener_propiedad(
     id_propiedad: str,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Obtiene una propiedad específica por su ID, incluyendo los datos de su dirección.
-    """
+    """Obtiene una propiedad específica por su ID"""
     supabase = get_supabase_client()
     
     try:
@@ -203,32 +189,20 @@ async def obtener_propiedad(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener la propiedad: {str(e)}")
 
-
 @router.put("/propiedades/{id_propiedad}", response_model=PropiedadResponse)
 async def actualizar_propiedad(
     id_propiedad: str,
     propiedad: PropiedadUpdate,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Actualiza los datos de una propiedad existente.
-    
-    Todos los campos son opcionales. Solo se actualizarán los campos proporcionados.
-    
-    **Casos de uso comunes:**
-    - Publicar propiedad: `{ "estado_propiedad": "Publicada", "fecha_publicacion_propiedad": "2025-10-18" }`
-    - Cerrar operación: `{ "estado_propiedad": "Cerrada", "id_usuario_colocador": "uuid", "fecha_cierre_propiedad": "2025-11-15" }`
-    - Actualizar precio: `{ "precio_publicado_propiedad": 180000.00 }`
-    """
+    """Actualiza los datos de una propiedad existente"""
     supabase = get_supabase_client()
     
     try:
-        # Verificar que la propiedad existe
         existing = supabase.table("propiedad").select("*").eq("id_propiedad", id_propiedad).execute()
         if not existing.data:
             raise HTTPException(status_code=404, detail="Propiedad no encontrada")
         
-        # Preparar datos para actualización
         update_data = propiedad.model_dump(exclude_unset=True)
         
         if not update_data:
@@ -250,15 +224,16 @@ async def actualizar_propiedad(
         if "fecha_cierre_propiedad" in update_data and update_data["fecha_cierre_propiedad"]:
             update_data["fecha_cierre_propiedad"] = update_data["fecha_cierre_propiedad"].isoformat()
         
-        # Actualizar propiedad
         result = supabase.table("propiedad").update(update_data).eq("id_propiedad", id_propiedad).execute()
         
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al actualizar la propiedad")
         
+        # ✅ Invalidar caché
+        clear_propiedades_cache()
+        
         propiedad_actualizada = result.data[0]
         
-        # Incluir dirección
         direccion = supabase.table("direccion").select("*").eq("id_direccion", propiedad_actualizada["id_direccion"]).execute()
         if direccion.data:
             propiedad_actualizada["direccion"] = direccion.data[0]
@@ -270,30 +245,19 @@ async def actualizar_propiedad(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al actualizar la propiedad: {str(e)}")
 
-
 @router.delete("/propiedades/{id_propiedad}", response_model=dict)
 async def eliminar_propiedad(
     id_propiedad: str,
     current_user = Depends(get_current_active_user)
 ):
-    """
-    Elimina una propiedad del sistema.
-    
-    ⚠️ No se puede eliminar si tiene:
-    - Imágenes asociadas (se eliminarán en cascada)
-    - Documentos asociados (se eliminarán en cascada)
-    - Citas de visita registradas
-    - Contratos de operación
-    """
+    """Elimina una propiedad del sistema"""
     supabase = get_supabase_client()
     
     try:
-        # Verificar que la propiedad existe
         propiedad = supabase.table("propiedad").select("*").eq("id_propiedad", id_propiedad).execute()
         if not propiedad.data:
             raise HTTPException(status_code=404, detail="Propiedad no encontrada")
         
-        # Verificar citas de visita
         citas = supabase.table("citavisita").select("id_cita").eq("id_propiedad", id_propiedad).execute()
         if citas.data:
             raise HTTPException(
@@ -301,7 +265,6 @@ async def eliminar_propiedad(
                 detail=f"No se puede eliminar la propiedad porque tiene {len(citas.data)} cita(s) de visita registrada(s)"
             )
         
-        # Verificar contratos
         contratos = supabase.table("contratooperacion").select("id_contrato_operacion").eq("id_propiedad", id_propiedad).execute()
         if contratos.data:
             raise HTTPException(
@@ -309,11 +272,13 @@ async def eliminar_propiedad(
                 detail=f"No se puede eliminar la propiedad porque tiene {len(contratos.data)} contrato(s) registrado(s)"
             )
         
-        # Las imágenes y documentos se eliminarán en cascada (ON DELETE CASCADE)
         result = supabase.table("propiedad").delete().eq("id_propiedad", id_propiedad).execute()
         
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al eliminar la propiedad")
+        
+        # ✅ Invalidar caché
+        clear_propiedades_cache()
         
         return {
             "message": "Propiedad eliminada exitosamente (imágenes y documentos eliminados en cascada)",

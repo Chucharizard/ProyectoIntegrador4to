@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { empleadoService } from '../../services/empleadoService';
-// ✅ ELIMINADO: import Layout from '../../components/layout/Layout';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
+// ✨ Importar componentes reutilizables
+import BackButton from '../../components/shared/BackButton';
+import FormCard from '../../components/shared/FormCard';
+import InfoBox from '../../components/shared/InfoBox';
 
 const EmpleadoForm = () => {
   const { ci } = useParams();
@@ -147,187 +150,185 @@ const EmpleadoForm = () => {
   if (loading && isEditMode) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-800 border-t-green-500"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-green-500/20 animate-pulse"></div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Header */}
+      {/* ✨ Header con BackButton Component */}
       <div className="mb-6">
-        <button
-          onClick={() => navigate('/empleados')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <ArrowLeftIcon className="h-5 w-5" />
-          Volver a Empleados
-        </button>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <BackButton to="/empleados" label="Volver a Empleados" />
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
           {isEditMode ? 'Editar Empleado' : 'Nuevo Empleado'}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-400 mt-1">
           {isEditMode 
             ? 'Actualiza la información del empleado' 
             : 'Registra un nuevo empleado en el sistema'}
         </p>
       </div>
 
-      {/* Info Box */}
+      {/* ✨ Info Box Component */}
       {!isEditMode && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-800">
-            <strong>📌 Nota:</strong> Después de crear el empleado, podrás crear sus credenciales de acceso en el módulo de Usuarios.
-          </p>
-        </div>
+        <InfoBox type="info">
+          <strong className="text-blue-400">📌 Nota:</strong> Después de crear el empleado, podrás crear sus credenciales de acceso en el módulo de Usuarios.
+        </InfoBox>
       )}
 
-      {/* Form */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {/* ✨ Form Card Component */}
+      <FormCard>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* CI */}
-          <div>
-            <label htmlFor="ci_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              CI <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="ci_empleado"
-              name="ci_empleado"
-              value={formData.ci_empleado}
-              onChange={handleChange}
-              disabled={isEditMode}
-              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''
-              }`}
-              placeholder="12345678"
-            />
-            {isEditMode && (
-              <p className="text-sm text-gray-500 mt-1">El CI no se puede modificar</p>
-            )}
-          </div>
+          {/* Grid de 2 columnas para campos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* CI */}
+            <div>
+              <label htmlFor="ci_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                CI <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="ci_empleado"
+                name="ci_empleado"
+                value={formData.ci_empleado}
+                onChange={handleChange}
+                disabled={isEditMode}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
+                  isEditMode ? 'cursor-not-allowed opacity-60' : ''
+                }`}
+                placeholder="12345678"
+              />
+              {isEditMode && (
+                <p className="text-xs text-gray-500 mt-1">El CI no se puede modificar</p>
+              )}
+            </div>
 
-          {/* Nombres */}
-          <div>
-            <label htmlFor="nombres_completo_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Nombres Completos <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="nombres_completo_empleado"
-              name="nombres_completo_empleado"
-              value={formData.nombres_completo_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Juan Carlos"
-            />
-          </div>
+            {/* Nombres */}
+            <div>
+              <label htmlFor="nombres_completo_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Nombres Completos <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="nombres_completo_empleado"
+                name="nombres_completo_empleado"
+                value={formData.nombres_completo_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Juan Carlos"
+              />
+            </div>
 
-          {/* Apellidos */}
-          <div>
-            <label htmlFor="apellidos_completo_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Apellidos Completos <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="apellidos_completo_empleado"
-              name="apellidos_completo_empleado"
-              value={formData.apellidos_completo_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Pérez García"
-            />
-          </div>
+            {/* Apellidos */}
+            <div>
+              <label htmlFor="apellidos_completo_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Apellidos Completos <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="apellidos_completo_empleado"
+                name="apellidos_completo_empleado"
+                value={formData.apellidos_completo_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Pérez García"
+              />
+            </div>
 
-          {/* Fecha de Nacimiento */}
-          <div>
-            <label htmlFor="fecha_nacimiento_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Nacimiento <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              id="fecha_nacimiento_empleado"
-              name="fecha_nacimiento_empleado"
-              value={formData.fecha_nacimiento_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+            {/* Fecha de Nacimiento */}
+            <div>
+              <label htmlFor="fecha_nacimiento_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Fecha de Nacimiento <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="date"
+                id="fecha_nacimiento_empleado"
+                name="fecha_nacimiento_empleado"
+                value={formData.fecha_nacimiento_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+              />
+            </div>
 
-          {/* Dirección */}
-          <div>
-            <label htmlFor="direccion_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Dirección
-            </label>
-            <input
-              type="text"
-              id="direccion_empleado"
-              name="direccion_empleado"
-              value={formData.direccion_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Av. Principal #123"
-            />
-          </div>
+            {/* Dirección */}
+            <div className="md:col-span-2">
+              <label htmlFor="direccion_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Dirección
+              </label>
+              <input
+                type="text"
+                id="direccion_empleado"
+                name="direccion_empleado"
+                value={formData.direccion_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Av. Principal #123"
+              />
+            </div>
 
-          {/* Teléfono */}
-          <div>
-            <label htmlFor="telefono_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="tel"
-              id="telefono_empleado"
-              name="telefono_empleado"
-              value={formData.telefono_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="70123456"
-            />
-          </div>
+            {/* Teléfono */}
+            <div>
+              <label htmlFor="telefono_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Teléfono <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="tel"
+                id="telefono_empleado"
+                name="telefono_empleado"
+                value={formData.telefono_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="70123456"
+              />
+            </div>
 
-          {/* Correo */}
-          <div>
-            <label htmlFor="correo_electronico_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Correo Electrónico
-            </label>
-            <input
-              type="email"
-              id="correo_electronico_empleado"
-              name="correo_electronico_empleado"
-              value={formData.correo_electronico_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="empleado@ejemplo.com"
-            />
-          </div>
+            {/* Correo */}
+            <div>
+              <label htmlFor="correo_electronico_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                id="correo_electronico_empleado"
+                name="correo_electronico_empleado"
+                value={formData.correo_electronico_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="empleado@ejemplo.com"
+              />
+            </div>
 
-          {/* Fecha de Contratación */}
-          <div>
-            <label htmlFor="fecha_contratacion_empleado" className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Contratación <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              id="fecha_contratacion_empleado"
-              name="fecha_contratacion_empleado"
-              value={formData.fecha_contratacion_empleado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            {/* Fecha de Contratación */}
+            <div>
+              <label htmlFor="fecha_contratacion_empleado" className="block text-sm font-medium text-green-400 mb-2">
+                Fecha de Contratación <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="date"
+                id="fecha_contratacion_empleado"
+                name="fecha_contratacion_empleado"
+                value={formData.fecha_contratacion_empleado}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+              />
+            </div>
           </div>
 
           {/* Estado Activo */}
-          <div className="flex items-center">
+          <div className="flex items-center space-x-3 p-4 bg-gray-900/30 border border-gray-700/50 rounded-lg">
             <input
               type="checkbox"
               id="es_activo_empleado"
               name="es_activo_empleado"
               checked={formData.es_activo_empleado}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-5 w-5 text-green-500 bg-gray-900 border-gray-600 rounded focus:ring-2 focus:ring-green-500/50"
             />
-            <label htmlFor="es_activo_empleado" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="es_activo_empleado" className="text-sm text-gray-300 font-medium cursor-pointer">
               Empleado activo
             </label>
           </div>
@@ -337,20 +338,20 @@ const EmpleadoForm = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-300 shadow-lg shadow-green-500/30 hover:shadow-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {loading ? 'Guardando...' : isEditMode ? 'Actualizar Empleado' : 'Crear Empleado'}
             </button>
             <button
               type="button"
               onClick={() => navigate('/empleados')}
-              className="flex-1 bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              className="flex-1 bg-gray-700/50 text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-700 transition-all duration-300 font-medium border border-gray-600"
             >
               Cancelar
             </button>
           </div>
         </form>
-      </div>
+      </FormCard>
     </div>
   );
 };

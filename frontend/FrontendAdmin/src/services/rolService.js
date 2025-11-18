@@ -1,5 +1,5 @@
 import axiosInstance from '../api/axios';
-import { rolesCache } from '../utils/rolesCache'; 
+import { rolesCache } from '../utils/cache'; // ✅ CAMBIO AQUÍ
 
 const BASE_URL = '/roles/';
 

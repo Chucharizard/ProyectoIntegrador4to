@@ -2,7 +2,18 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { clienteService } from '../../services/clienteService';
 import toast from 'react-hot-toast';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { 
+  UserIcon, 
+  PhoneIcon, 
+  EnvelopeIcon, 
+  MapPinIcon, 
+  CurrencyDollarIcon,
+  TagIcon 
+} from '@heroicons/react/24/outline';
+
+// ✨ Importar componentes reutilizables
+import BackButton from '../../components/shared/BackButton';
+import FormCard from '../../components/shared/FormCard';
 
 const ClienteForm = () => {
   const navigate = useNavigate();
@@ -80,7 +91,6 @@ const ClienteForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validaciones
     if (!formData.ci_cliente.trim()) {
       toast.error('El CI es obligatorio');
       return;
@@ -97,7 +107,6 @@ const ClienteForm = () => {
     try {
       setLoading(true);
 
-      // Preparar datos (convertir strings vacíos a null)
       const dataToSend = {
         ...formData,
         telefono_cliente: formData.telefono_cliente || null,
@@ -130,207 +139,224 @@ const ClienteForm = () => {
 
   if (loading && isEditing) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center items-center h-64">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-800 border-t-green-500"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-green-500/20 animate-pulse"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => navigate('/clientes')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-150"
-        >
-          <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {isEditing
-              ? 'Modifica la información del cliente'
-              : 'Completa los datos del nuevo cliente'}
-          </p>
-        </div>
+    <div className="max-w-4xl mx-auto">
+      {/* ✨ Header con BackButton */}
+      <div className="mb-6">
+        <BackButton to="/clientes" label="Volver a Clientes" />
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
+          {isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}
+        </h1>
+        <p className="text-gray-400 mt-1">
+          {isEditing
+            ? 'Modifica la información del cliente'
+            : 'Completa los datos del nuevo cliente'}
+        </p>
       </div>
 
-      {/* Formulario */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-        <div className="space-y-6">
-          {/* Información Personal */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Información Personal
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CI <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="ci_cliente"
-                  value={formData.ci_cliente}
-                  onChange={handleChange}
-                  disabled={isEditing}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    isEditing ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="Ej: 12345678"
-                  required
-                />
-                {isEditing && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    El CI no se puede modificar
-                  </p>
-                )}
-              </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* ✨ Información Personal - FormCard */}
+        <FormCard>
+          <div className="flex items-center gap-2 mb-4">
+            <UserIcon className="h-6 w-6 text-green-400" />
+            <h2 className="text-xl font-semibold text-green-400">Información Personal</h2>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CI */}
+            <div>
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                CI <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                name="ci_cliente"
+                value={formData.ci_cliente}
+                onChange={handleChange}
+                disabled={isEditing}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
+                  isEditing ? 'opacity-60 cursor-not-allowed' : ''
+                }`}
+                placeholder="Ej: 12345678"
+                required
+              />
+              {isEditing && (
+                <p className="text-xs text-gray-500 mt-1">
+                  El CI no se puede modificar
+                </p>
+              )}
+            </div>
+
+            {/* Teléfono */}
+            <div>
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <PhoneIcon className="h-4 w-4" />
                   Teléfono
-                </label>
-                <input
-                  type="tel"
-                  name="telefono_cliente"
-                  value={formData.telefono_cliente}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: 70123456"
-                />
-              </div>
+                </div>
+              </label>
+              <input
+                type="tel"
+                name="telefono_cliente"
+                value={formData.telefono_cliente}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Ej: 70123456"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombres <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="nombres_completo_cliente"
-                  value={formData.nombres_completo_cliente}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: Juan Carlos"
-                  required
-                />
-              </div>
+            {/* Nombres */}
+            <div>
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                Nombres <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                name="nombres_completo_cliente"
+                value={formData.nombres_completo_cliente}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Ej: Juan Carlos"
+                required
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Apellidos <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="apellidos_completo_cliente"
-                  value={formData.apellidos_completo_cliente}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: Pérez García"
-                  required
-                />
-              </div>
+            {/* Apellidos */}
+            <div>
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                Apellidos <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                name="apellidos_completo_cliente"
+                value={formData.apellidos_completo_cliente}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Ej: Pérez García"
+                required
+              />
+            </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+            {/* Correo Electrónico */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <EnvelopeIcon className="h-4 w-4" />
                   Correo Electrónico
-                </label>
-                <input
-                  type="email"
-                  name="correo_electronico_cliente"
-                  value={formData.correo_electronico_cliente}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: juan.perez@email.com"
-                />
-              </div>
+                </div>
+              </label>
+              <input
+                type="email"
+                name="correo_electronico_cliente"
+                value={formData.correo_electronico_cliente}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Ej: juan.perez@email.com"
+              />
             </div>
           </div>
+        </FormCard>
 
-          {/* Preferencias */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Preferencias
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Zona Preferida
-                </label>
-                <input
-                  type="text"
-                  name="preferencia_zona_cliente"
-                  value={formData.preferencia_zona_cliente}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: Zona Sur, Centro"
-                />
-              </div>
+        {/* ✨ Preferencias - FormCard */}
+        <FormCard>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPinIcon className="h-6 w-6 text-green-400" />
+            <h2 className="text-xl font-semibold text-green-400">Preferencias</h2>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Zona Preferida */}
+            <div>
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                Zona Preferida
+              </label>
+              <input
+                type="text"
+                name="preferencia_zona_cliente"
+                value={formData.preferencia_zona_cliente}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Ej: Zona Sur, Centro"
+              />
+            </div>
+
+            {/* Presupuesto */}
+            <div>
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <CurrencyDollarIcon className="h-4 w-4" />
                   Presupuesto Máximo (Bs.)
-                </label>
-                <input
-                  type="number"
-                  name="presupuesto_max_cliente"
-                  value={formData.presupuesto_max_cliente}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: 150000"
-                />
-              </div>
+                </div>
+              </label>
+              <input
+                type="number"
+                name="presupuesto_max_cliente"
+                value={formData.presupuesto_max_cliente}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                placeholder="Ej: 150000"
+              />
+            </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+            {/* Origen */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-green-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <TagIcon className="h-4 w-4" />
                   Origen/Fuente
-                </label>
-                <select
-                  name="origen_cliente"
-                  value={formData.origen_cliente}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="Referido">Referido</option>
-                  <option value="Redes Sociales">Redes Sociales</option>
-                  <option value="Sitio Web">Sitio Web</option>
-                  <option value="Llamada Directa">Llamada Directa</option>
-                  <option value="Oficina">Oficina</option>
-                  <option value="Otro">Otro</option>
-                </select>
-              </div>
+                </div>
+              </label>
+              <select
+                name="origen_cliente"
+                value={formData.origen_cliente}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+              >
+                <option value="">Seleccionar...</option>
+                <option value="Referido">Referido</option>
+                <option value="Redes Sociales">Redes Sociales</option>
+                <option value="Sitio Web">Sitio Web</option>
+                <option value="Llamada Directa">Llamada Directa</option>
+                <option value="Oficina">Oficina</option>
+                <option value="Otro">Otro</option>
+              </select>
             </div>
           </div>
-        </div>
+        </FormCard>
 
         {/* Botones */}
-        <div className="flex justify-end space-x-4 mt-6 pt-6 border-t">
-          <button
-            type="button"
-            onClick={() => navigate('/clientes')}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-150"
-          >
-            Cancelar
-          </button>
+        <div className="flex gap-4">
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-300 shadow-lg shadow-green-500/30 hover:shadow-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                 <span>Guardando...</span>
               </>
             ) : (
               <span>{isEditing ? 'Actualizar' : 'Crear'} Cliente</span>
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/clientes')}
+            className="flex-1 bg-gray-700/50 text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-700 transition-all duration-300 font-medium border border-gray-600"
+          >
+            Cancelar
           </button>
         </div>
       </form>

@@ -13,7 +13,8 @@ from app.schemas.usuario import (
     UsuarioUpdate,
     UsuarioResponse,
     UsuarioLogin,
-    Token
+    Token,
+    TokenWithUser
 )
 from app.utils.security import (
     get_password_hash,
@@ -279,11 +280,11 @@ async def desactivar_usuario(
         )
 
 
-@router.post("/usuarios/login", response_model=Token)
+@router.post("/usuarios/login", response_model=TokenWithUser)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Endpoint de login para autenticación
-    Retorna un token JWT
+    Retorna un token JWT y los datos del usuario
     """
     supabase = get_supabase_client()
     
@@ -322,7 +323,15 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             expires_delta=access_token_expires
         )
         
-        return {"access_token": access_token, "token_type": "bearer"}
+        # Preparar datos del usuario sin contraseña
+        user_data = {**usuario}
+        user_data.pop('contrasenia_usuario', None)
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user_data
+        }
         
     except HTTPException:
         raise
@@ -338,4 +347,13 @@ async def obtener_usuario_actual(current_user: dict = Depends(get_current_active
     """
     Obtener información del usuario autenticado actualmente
     """
-    return current_user
+    print("🔍 [DEBUG /me] ========== Endpoint /me llamado ==========")
+    print(f"📦 [DEBUG /me] current_user keys: {list(current_user.keys())}")
+    
+    # Remover la contraseña antes de retornar
+    user_data = {**current_user}
+    user_data.pop('contrasenia_usuario', None)
+    
+    print(f"✅ [DEBUG /me] user_data sin contraseña, keys: {list(user_data.keys())}")
+    print(f"✅ [DEBUG /me] ========== Retornando ==========")
+    return user_data

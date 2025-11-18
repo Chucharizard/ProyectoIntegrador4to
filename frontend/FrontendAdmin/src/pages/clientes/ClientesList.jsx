@@ -1,44 +1,72 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clienteService } from '../../services/clienteService';
-import toast from 'react-hot-toast';
-import {
-  PlusIcon,
-  MagnifyingGlassIcon,
-  PencilIcon,
-  TrashIcon,
-  PhoneIcon,
-  EnvelopeIcon,
+import { 
+  TrashIcon, 
+  PencilIcon, 
+  MagnifyingGlassIcon, 
+  FunnelIcon, 
+  XMarkIcon, 
+  ChevronLeftIcon, 
+  ChevronRightIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
+import clienteService from '../../services/clienteService';
+import toast from 'react-hot-toast';
 
+// ✨ Importar componentes reutilizables
+import PageHeader from '../../components/shared/PageHeader';
+import StatsCard from '../../components/shared/StatsCard';
+import SearchBar from '../../components/shared/SearchBar';
+import DataTable from '../../components/shared/DataTable';
+
+/**
+ * ✅ Componente MEJORADO con Paginación del Backend
+ */
 const ClientesList = () => {
   const navigate = useNavigate();
-  const [clientes, setClientes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
 
+  // Estados de datos
+  const [loading, setLoading] = useState(true);
+  const [error] = useState(null);
+  const [allClientes, setAllClientes] = useState([]);
+
+  // Estados de paginación
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(30); // Puedes hacerlo configurable
+
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [origenFilter, setOrigenFilter] = useState('');
+  const [zonaFilter, setZonaFilter] = useState('');
+  const [misClientes, setMisClientes] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // ====================================
+  // 📥 CARGAR CLIENTES (UNA SOLA VEZ)
+  // ====================================
   useEffect(() => {
     const controller = new AbortController();
     let isMounted = true;
-
+    
     const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await clienteService.getAll(controller.signal);
+        // Cargar TODOS los clientes (sin paginación del backend)
+        const data = await clienteService.getAllSimple(controller.signal);
         
         if (isMounted) {
-          setClientes(data);
+          setAllClientes(data);
         }
       } catch (error) {
         if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError') {
           console.log('Petición cancelada');
           return;
         }
-
+        
         if (isMounted) {
-          console.error('Error al cargar clientes:', error);
-          toast.error('Error al cargar la lista de clientes');
-          setClientes([]);
+          console.error('Error loading clientes:', error);
+          toast.error('Error al cargar clientes');
+          setAllClientes([]);
         }
       } finally {
         if (isMounted) {
@@ -46,233 +74,420 @@ const ClientesList = () => {
         }
       }
     };
-
+    
     fetchData();
-
+    
     return () => {
       isMounted = false;
       controller.abort();
     };
   }, []);
 
-  const filteredClientes = clientes.filter((cliente) => {
-    if (!searchTerm.trim()) return true;
+  // ====================================
+  // 🔍 FILTRADO EN EL CLIENTE
+  // ====================================
+  const filteredClientes = allClientes.filter(cliente => {
+    if (!cliente) return false;
     
+    // Filtro de búsqueda
     const term = searchTerm.toLowerCase();
-    return (
-      cliente.nombres_completo_cliente?.toLowerCase().includes(term) ||
-      cliente.apellidos_completo_cliente?.toLowerCase().includes(term) ||
-      cliente.ci_cliente?.toLowerCase().includes(term) ||
-      cliente.telefono_cliente?.toLowerCase().includes(term)
-    );
+    const matchSearch = !searchTerm || 
+      (cliente.ci_cliente || '').toLowerCase().includes(term) ||
+      (cliente.nombres_completo_cliente || '').toLowerCase().includes(term) ||
+      (cliente.correo_electronico_cliente || '').toLowerCase().includes(term) ||
+      (cliente.telefono_cliente || '').toLowerCase().includes(term);
+    
+    // Filtro de origen
+    const matchOrigen = !origenFilter || cliente.origen_cliente === origenFilter;
+    
+    // Filtro de zona
+    const matchZona = !zonaFilter || 
+      (cliente.preferencia_zona_cliente || '').toLowerCase().includes(zonaFilter.toLowerCase());
+    
+    // Filtro de "mis clientes" (si aplica - necesitarías el id_usuario_registrador)
+    const matchMisClientes = !misClientes; // Por ahora deshabilitado, necesitas comparar con usuario actual
+    
+    return matchSearch && matchOrigen && matchZona && matchMisClientes;
   });
 
-  const handleDelete = async (ci, nombre) => {
-    if (window.confirm(`¿Estás seguro de eliminar al cliente ${nombre}?`)) {
-      try {
-        await clienteService.delete(ci);
-        toast.success('Cliente eliminado correctamente');
-        
-        const data = await clienteService.getAll();
-        setClientes(data);
-      } catch (error) {
-        console.error('Error al eliminar cliente:', error);
-        toast.error('Error al eliminar el cliente');
-      }
+  // ====================================
+  // 📄 PAGINACIÓN EN EL CLIENTE
+  // ====================================
+  const totalFilteredItems = filteredClientes.length;
+  const totalPages = Math.ceil(totalFilteredItems / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedClientes = filteredClientes.slice(startIndex, endIndex);
+  const hasNext = page < totalPages;
+  const hasPrev = page > 1;
+
+  // Resetear a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, origenFilter, zonaFilter, misClientes]);
+
+  // ====================================
+  // 🗑️ ELIMINAR CLIENTE
+  // ====================================
+  const handleDelete = async (ci) => {
+    if (!window.confirm('¿Estás seguro de eliminar este cliente?')) return;
+
+    try {
+      await clienteService.delete(ci);
+      toast.success('Cliente eliminado exitosamente');
+      
+      // Recargar la lista
+      const controller = new AbortController();
+      const data = await clienteService.getAllSimple(controller.signal);
+      setAllClientes(data);
+      
+    } catch (error) {
+      console.error('Error al eliminar cliente:', error);
+      toast.error('Error al eliminar el cliente');
     }
   };
 
-  const formatCurrency = (value) => {
-    if (!value) return '-';
-    return new Intl.NumberFormat('es-BO', {
-      style: 'currency',
-      currency: 'BOB',
-    }).format(value);
+  // ====================================
+  // 📄 NAVEGACIÓN DE PÁGINAS
+  // ====================================
+  const goToPage = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('es-BO', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const goToFirstPage = () => goToPage(1);
+  const goToLastPage = () => goToPage(totalPages);
+  const goToNextPage = () => goToPage(page + 1);
+  const goToPrevPage = () => goToPage(page - 1);
+
+  // ====================================
+  // 🧹 LIMPIAR FILTROS
+  // ====================================
+  const clearFilters = () => {
+    setSearchTerm('');
+    setOrigenFilter('');
+    setZonaFilter('');
+    setMisClientes(false);
+    setPage(1);
   };
 
-  const stats = {
-    total: clientes.length,
-    filtered: filteredClientes.length,
-    conPresupuesto: clientes.filter((c) => c.presupuesto_max_cliente).length,
-  };
+  // ====================================
+  // 📊 ESTADÍSTICAS
+  // ====================================
+const stats = [
+  {
+    label: 'Total', // ✨ CAMBIA 'title' POR 'label' AQUÍ
+    value: totalFilteredItems,
+    icon: UserGroupIcon,
+    color: 'blue'
+  },
+  {
+    label: 'Página Actual', // ✨ Y AQUÍ
+    value: paginatedClientes.length,
+    icon: UserGroupIcon,
+    color: 'green'
+  },
+  {
+    label: 'Páginas', // ✨ Y AQUÍ
+    value: totalPages,
+    icon: UserGroupIcon,
+    color: 'purple'
+  }
+];
+
+  // ====================================
+  // 📊 COLUMNAS DE LA TABLA
+  // ====================================
+  const columns = [
+    {
+      header: 'CI',
+      render: (row) => (
+        <span className="font-medium text-gray-200">{row.ci_cliente}</span>
+      )
+    },
+    {
+      header: 'Nombre Completo',
+      render: (row) => (
+        <span className="font-medium text-gray-100">{row.nombres_completo_cliente}</span>
+      )
+    },
+    {
+      header: 'Teléfono',
+      render: (row) => (
+        <span className="text-gray-300">{row.telefono_cliente || '-'}</span>
+      )
+    },
+    {
+      header: 'Correo',
+      render: (row) => (
+        <span className="text-gray-300">{row.correo_electronico_cliente || '-'}</span>
+      )
+    },
+    {
+      header: 'Origen',
+      render: (row) => (
+        <span className="px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs">
+          {row.origen_cliente || 'Sin especificar'}
+        </span>
+      )
+    },
+    {
+      header: 'Acciones',
+      render: (row) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/clientes/${row.ci_cliente}`)}
+            className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
+            title="Editar"
+          >
+            <PencilIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => handleDelete(row.ci_cliente)}
+            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+            title="Eliminar"
+          >
+            <TrashIcon className="w-5 h-5" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  // ====================================
+  // 🎨 RENDERIZADO
+  // ====================================
+
+  // Calcular rango de items mostrados
+  const startItem = (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalFilteredItems);
+
+  // Hay filtros activos?
+  const hasActiveFilters = searchTerm || origenFilter || zonaFilter || misClientes;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-gray-600 mt-1">
-            Gestiona la información de tus clientes
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/clientes/nuevo')}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
-        >
-          <PlusIcon className="h-5 w-5" />
-          <span>Nuevo Cliente</span>
-        </button>
+      {/* HEADER */}
+      <PageHeader 
+        title="Gestión de Clientes"
+        subtitle={totalFilteredItems > 0 
+          ? `Mostrando ${startItem} - ${endItem} de ${totalFilteredItems} clientes`
+          : 'No hay clientes registrados'
+        }
+        buttonText="Nuevo Cliente"
+        onButtonClick={() => navigate('/clientes/nuevo')}
+      />
+
+      {/* ESTADÍSTICAS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {stats.map((stat, index) => (
+          <StatsCard key={index} {...stat} />
+        ))}
       </div>
 
-      {/* Búsqueda */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, CI o teléfono..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+      {/* BARRA DE BÚSQUEDA Y FILTROS */}
+      <div className="glass-card p-4">
+        <div className="flex gap-4 items-center mb-4">
+          <div className="flex-1">
+            <SearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Buscar por nombre o CI..."
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+              showFilters 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
+                : 'glass-effect text-gray-300 hover:bg-white/10'
+            }`}
+          >
+            <FunnelIcon className="w-5 h-5" />
+            Filtros
+            {hasActiveFilters && (
+              <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                !
+              </span>
+            )}
+          </button>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-2 px-4 py-2 glass-effect text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+            >
+              <XMarkIcon className="w-5 h-5" />
+              Limpiar
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Tabla de Clientes */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : filteredClientes.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              {searchTerm ? 'No se encontraron clientes' : 'No hay clientes registrados'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CI
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nombre Completo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contacto
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Presupuesto
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Zona Preferida
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha Registro
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredClientes.map((cliente) => (
-                  <tr
-                    key={cliente.ci_cliente}
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {cliente.ci_cliente}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {cliente.nombres_completo_cliente} {cliente.apellidos_completo_cliente}
-                      </div>
-                      {cliente.origen_cliente && (
-                        <div className="text-xs text-gray-500">
-                          Origen: {cliente.origen_cliente}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="space-y-1">
-                        {cliente.telefono_cliente && (
-                          <div className="flex items-center text-sm text-gray-600">
-                            <PhoneIcon className="h-4 w-4 mr-1 text-gray-400" />
-                            {cliente.telefono_cliente}
-                          </div>
-                        )}
-                        {cliente.correo_electronico_cliente && (
-                          <div className="flex items-center text-sm text-gray-600">
-                            <EnvelopeIcon className="h-4 w-4 mr-1 text-gray-400" />
-                            {cliente.correo_electronico_cliente}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(cliente.presupuesto_max_cliente)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {cliente.preferencia_zona_cliente || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatDate(cliente.fecha_registro_cliente)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => navigate(`/clientes/editar/${cliente.ci_cliente}`)}
-                          className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded transition-colors duration-150"
-                          title="Editar"
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDelete(
-                              cliente.ci_cliente,
-                              `${cliente.nombres_completo_cliente} ${cliente.apellidos_completo_cliente}`
-                            )
-                          }
-                          className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors duration-150"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* PANEL DE FILTROS */}
+        {showFilters && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/10">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Origen
+              </label>
+              <select
+                value={origenFilter}
+                onChange={(e) => {
+                  setOrigenFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="input-field w-full"
+              >
+                <option value="">Todos</option>
+                <option value="Redes sociales">Redes sociales</option>
+                <option value="Referido">Referido</option>
+                <option value="Web">Web</option>
+                <option value="Llamada directa">Llamada directa</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Zona de Preferencia
+              </label>
+              <input
+                type="text"
+                value={zonaFilter}
+                onChange={(e) => {
+                  setZonaFilter(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Ej: Zona Sur"
+                className="input-field w-full"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={misClientes}
+                  onChange={(e) => {
+                    setMisClientes(e.target.checked);
+                    setPage(1);
+                  }}
+                  className="w-4 h-4 text-blue-500 bg-white/10 border-white/20 rounded focus:ring-blue-500 focus:ring-offset-0"
+                />
+                <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+                  Solo mis clientes
+                </span>
+              </label>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="text-sm text-gray-600">Total Clientes</div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {stats.total}
+      {/* TABLA */}
+      <div className="glass-card overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center items-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="text-sm text-gray-600">Resultados de Búsqueda</div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {stats.filtered}
+        ) : error ? (
+          <div className="p-6 text-center text-red-400">
+            {error}
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="text-sm text-gray-600">Con Presupuesto Definido</div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {stats.conPresupuesto}
-          </div>
-        </div>
+        ) : (
+          <>
+            <DataTable
+              columns={columns}
+              data={paginatedClientes}
+              emptyMessage={
+                hasActiveFilters 
+                  ? "No se encontraron clientes con los filtros aplicados" 
+                  : "No hay clientes registrados"
+              }
+            />
+
+            {/* PAGINACIÓN */}
+            {totalPages > 1 && (
+              <div className="border-t border-white/10 p-4 bg-white/5">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Info */}
+                  <div className="text-sm text-gray-300">
+                    Página <span className="font-semibold text-white">{page}</span> de{' '}
+                    <span className="font-semibold text-white">{totalPages}</span>
+                  </div>
+
+                  {/* Controles */}
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <button
+                      onClick={goToFirstPage}
+                      disabled={!hasPrev}
+                      className="px-3 py-2 rounded-lg glass-effect text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-all duration-200"
+                      title="Primera página"
+                    >
+                      {'<<'}
+                    </button>
+                    
+                    <button
+                      onClick={goToPrevPage}
+                      disabled={!hasPrev}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg glass-effect text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-all duration-200"
+                    >
+                      <ChevronLeftIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Anterior</span>
+                    </button>
+
+                    {/* Números de página */}
+                    <div className="flex gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (page <= 3) {
+                          pageNum = i + 1;
+                        } else if (page >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = page - 2 + i;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => goToPage(pageNum)}
+                            className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                              page === pageNum
+                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                : 'glass-effect text-gray-300 hover:bg-white/10'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={goToNextPage}
+                      disabled={!hasNext}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg glass-effect text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-all duration-200"
+                    >
+                      <span className="hidden sm:inline">Siguiente</span>
+                      <ChevronRightIcon className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={goToLastPage}
+                      disabled={!hasNext}
+                      className="px-3 py-2 rounded-lg glass-effect text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-all duration-200"
+                      title="Última página"
+                    >
+                      {'>>'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

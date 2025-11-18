@@ -18,92 +18,103 @@ const Login = () => {
   const [inputFocused, setInputFocused] = useState({ username: false, password: false });
 
   // Efecto de constelaciones mejorado
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Efecto de constelaciones OPTIMIZADO para móvil
+useEffect(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-    const particles = [];
-    const particleCount = 150; // ✅ AÚN MÁS PARTÍCULAS
-    const maxDistance = 180; // ✅ Mayor distancia de conexión
+  const particles = [];
+  
+  // ✅ AJUSTE DINÁMICO según tamaño de pantalla
+  const isMobile = window.innerWidth < 768;
+  const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+  
+  const particleCount = isMobile ? 40 : isTablet ? 80 : 150; // 📱 40 móvil, 💻 80 tablet, 🖥️ 150 desktop
+  const maxDistance = isMobile ? 100 : isTablet ? 140 : 180; // Menor distancia en móvil
+  const particleSpeed = isMobile ? 0.3 : 0.8; // Más lento en móvil
 
-    class Particle {
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.vx = (Math.random() - 0.5) * 0.8;
-        this.vy = (Math.random() - 0.5) * 0.8;
-        this.radius = Math.random() * 3 + 1.5; // ✅ Partículas más grandes
-      }
-
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-
-        if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
-        if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
-      }
-
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        // ✅ Efecto glow más pronunciado
-        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2);
-        gradient.addColorStop(0, 'rgba(16, 185, 129, 1)');
-        gradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.6)');
-        gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
-        ctx.fillStyle = gradient;
-        ctx.fill();
-      }
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.vx = (Math.random() - 0.5) * particleSpeed;
+      this.vy = (Math.random() - 0.5) * particleSpeed;
+      this.radius = isMobile ? Math.random() * 2 + 1 : Math.random() * 3 + 1.5; // Más pequeñas en móvil
     }
 
-    for (let i = 0; i < particleCount; i++) {
-      particles.push(new Particle());
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+
+      if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
+      if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
     }
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      
+      // ✅ Gradiente más suave en móvil
+      const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2);
+      const glowIntensity = isMobile ? 0.8 : 1; // Menos glow en móvil
+      gradient.addColorStop(0, `rgba(16, 185, 129, ${glowIntensity})`);
+      gradient.addColorStop(0.5, `rgba(16, 185, 129, ${0.6 * glowIntensity})`);
+      gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+  }
 
-      particles.forEach(particle => {
-        particle.update();
-        particle.draw();
-      });
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+  }
 
-      // Dibujar líneas entre partículas cercanas
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (distance < maxDistance) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            const opacity = (1 - distance / maxDistance) * 0.9; // ✅ Líneas más visibles
-            ctx.strokeStyle = `rgba(16, 185, 129, ${opacity})`;
-            ctx.lineWidth = 1.5; // ✅ Líneas más gruesas
-            ctx.stroke();
-          }
+    particles.forEach(particle => {
+      particle.update();
+      particle.draw();
+    });
+
+    // Dibujar líneas entre partículas cercanas
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < maxDistance) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          const opacityMultiplier = isMobile ? 0.6 : 0.9; // Líneas más tenues en móvil
+          const opacity = (1 - distance / maxDistance) * opacityMultiplier;
+          ctx.strokeStyle = `rgba(16, 185, 129, ${opacity})`;
+          ctx.lineWidth = isMobile ? 1 : 1.5; // Líneas más delgadas en móvil
+          ctx.stroke();
         }
       }
-
-      requestAnimationFrame(animate);
     }
 
-    animate();
+    requestAnimationFrame(animate);
+  }
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
+  animate();
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const handleResize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
+
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;

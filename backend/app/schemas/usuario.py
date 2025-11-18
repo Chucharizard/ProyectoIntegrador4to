@@ -37,9 +37,8 @@ class UsuarioResponse(UsuarioBase):
     id_usuario: UUID
     fecha_creacion_usuario: datetime
     es_activo_usuario: bool
-    created_at: Optional[datetime] = None
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra='ignore')
 
 
 # Schema para Login
@@ -54,6 +53,13 @@ class Token(BaseModel):
     """Schema de respuesta tras login exitoso"""
     access_token: str
     token_type: str = "bearer"
+
+
+class TokenWithUser(BaseModel):
+    """Schema de respuesta tras login exitoso con datos del usuario"""
+    access_token: str
+    token_type: str = "bearer"
+    user: dict  # Incluye los datos del usuario
 
 
 class TokenData(BaseModel):

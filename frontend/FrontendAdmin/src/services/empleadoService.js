@@ -8,7 +8,9 @@ export const empleadoService = {
       const response = await axiosInstance.get(BASE_URL, { signal });
       return response.data;
     } catch (error) {
-      console.error('Error fetching empleados:', error);
+      if (error.code !== 'ERR_CANCELED' && error.name !== 'CanceledError') {
+        console.error('Error fetching empleados:', error);
+      }
       throw error;
     }
   },
@@ -18,7 +20,9 @@ export const empleadoService = {
       const response = await axiosInstance.get(`${BASE_URL}${ci}`, { signal });
       return response.data;
     } catch (error) {
-      console.error(`Error fetching empleado ${ci}:`, error);
+      if (error.code !== 'ERR_CANCELED' && error.name !== 'CanceledError') {
+        console.error(`Error fetching empleado ${ci}:`, error);
+      }
       throw error;
     }
   },
