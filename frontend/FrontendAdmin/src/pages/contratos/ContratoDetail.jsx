@@ -19,7 +19,6 @@ function ContratoDetail() {
   const [pagos, setPagos] = useState([]);
   const [activeTab, setActiveTab] = useState('info'); // 'info', 'pagos'
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // Stats de pagos
   const [pagoStats, setPagoStats] = useState({
@@ -51,10 +50,9 @@ function ContratoDetail() {
 
     try {
       setLoading(true);
-      setError(null);
 
       // Cargar contrato
-      const contratoData = await contratoService.getById(id, controller.signal);
+      const contratoData = await contratoService.getById(id);
 
       if (!isMounted.current) return;
 
@@ -62,16 +60,16 @@ function ContratoDetail() {
 
       // Cargar datos relacionados en paralelo
       const [propiedadData, clienteData, usuarioData, pagosData] = await Promise.all([
-        propiedadService.getAll(controller.signal).then(props => 
+        propiedadService.getAllSimple().then(props => 
           props.find(p => p.id_propiedad === contratoData.id_propiedad)
         ),
-        clienteService.getAll(controller.signal).then(clientes => 
+        clienteService.getAllSimple().then(clientes => 
           clientes.find(c => c.ci_cliente === contratoData.ci_cliente)
         ),
-        usuarioService.getAll(controller.signal).then(usuarios => 
+        usuarioService.getAll().then(usuarios => 
           usuarios.find(u => u.id_usuario === contratoData.id_usuario_colocador)
         ),
-        pagoService.getAll({ id_contrato: id }, controller.signal)
+        pagoService.getAll({ id_contrato: id })
       ]);
 
       if (!isMounted.current) return;
@@ -102,9 +100,6 @@ function ContratoDetail() {
         return;
       }
       console.error('Error al cargar datos:', error);
-      if (isMounted.current) {
-        setError('Error al cargar los datos del contrato.');
-      }
     } finally {
       if (isMounted.current) {
         setLoading(false);
@@ -117,7 +112,8 @@ function ContratoDetail() {
 
     try {
       await pagoService.delete(pagoId);
-      loadData(); // Recargar datos
+      // Recargar datos
+      loadData();
     } catch (error) {
       console.error('Error al eliminar pago:', error);
       alert('Error al eliminar el pago');
@@ -167,7 +163,7 @@ function ContratoDetail() {
     );
   }
 
-  if (error || !contrato) {
+  if (!contrato) {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">
@@ -176,7 +172,7 @@ function ContratoDetail() {
           </svg>
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar el contrato</h3>
-        <p className="text-gray-600 mb-4">{error}</p>
+        <p className="text-gray-600 mb-4">No se pudo cargar la información del contrato.</p>
         <button
           onClick={() => navigate('/contratos')}
           className="text-blue-600 hover:text-blue-700 font-medium"

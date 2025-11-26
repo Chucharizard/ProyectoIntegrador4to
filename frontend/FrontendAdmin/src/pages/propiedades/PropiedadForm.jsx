@@ -32,10 +32,8 @@ const PropiedadForm = () => {
     fecha_captacion_propiedad: '',
     fecha_publicacion_propiedad: '',
     calle_direccion: '',
-    numero_calle_direccion: '',
     barrio_direccion: '',
     ciudad_direccion: '',
-    departamento_direccion: '',
     codigo_postal_direccion: '',
     latitud_direccion: '',
     longitud_direccion: ''
@@ -75,10 +73,8 @@ const PropiedadForm = () => {
               fecha_captacion_propiedad: propiedadData.fecha_captacion_propiedad || '',
               fecha_publicacion_propiedad: propiedadData.fecha_publicacion_propiedad || '',
               calle_direccion: direccionData?.calle_direccion || '',
-              numero_calle_direccion: direccionData?.numero_calle_direccion || '',
               barrio_direccion: direccionData?.barrio_direccion || '',
               ciudad_direccion: direccionData?.ciudad_direccion || '',
-              departamento_direccion: direccionData?.departamento_direccion || '',
               codigo_postal_direccion: direccionData?.codigo_postal_direccion || '',
               latitud_direccion: direccionData?.latitud_direccion || '',
               longitud_direccion: direccionData?.longitud_direccion || ''
@@ -147,10 +143,6 @@ const PropiedadForm = () => {
       toast.error('La ciudad es obligatoria');
       return false;
     }
-    if (!formData.departamento_direccion.trim()) {
-      toast.error('El departamento es obligatorio');
-      return false;
-    }
 
     return true;
   };
@@ -167,10 +159,8 @@ const PropiedadForm = () => {
 
       const direccionData = {
         calle_direccion: formData.calle_direccion,
-        numero_calle_direccion: formData.numero_calle_direccion || null,
         barrio_direccion: formData.barrio_direccion || null,
         ciudad_direccion: formData.ciudad_direccion,
-        departamento_direccion: formData.departamento_direccion,
         codigo_postal_direccion: formData.codigo_postal_direccion || null,
         latitud_direccion: formData.latitud_direccion ? parseFloat(formData.latitud_direccion) : null,
         longitud_direccion: formData.longitud_direccion ? parseFloat(formData.longitud_direccion) : null
@@ -450,37 +440,20 @@ const PropiedadForm = () => {
               </div>
               
               <div className="space-y-4">
-                {/* Calle y Número */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <label htmlFor="calle_direccion" className="block text-sm font-medium text-green-400 mb-2">
-                      Calle <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="calle_direccion"
-                      name="calle_direccion"
-                      value={formData.calle_direccion}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                      placeholder="Av. 6 de Agosto"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="numero_calle_direccion" className="block text-sm font-medium text-green-400 mb-2">
-                      Número
-                    </label>
-                    <input
-                      type="text"
-                      id="numero_calle_direccion"
-                      name="numero_calle_direccion"
-                      value={formData.numero_calle_direccion}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                      placeholder="1234"
-                    />
-                  </div>
+                {/* Calle */}
+                <div>
+                  <label htmlFor="calle_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                    Calle <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="calle_direccion"
+                    name="calle_direccion"
+                    value={formData.calle_direccion}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="Av. 6 de Agosto"
+                  />
                 </div>
 
                 {/* Barrio */}
@@ -499,46 +472,20 @@ const PropiedadForm = () => {
                   />
                 </div>
 
-                {/* Ciudad y Departamento */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="ciudad_direccion" className="block text-sm font-medium text-green-400 mb-2">
-                      Ciudad <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="ciudad_direccion"
-                      name="ciudad_direccion"
-                      value={formData.ciudad_direccion}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                      placeholder="La Paz"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="departamento_direccion" className="block text-sm font-medium text-green-400 mb-2">
-                      Departamento <span className="text-red-400">*</span>
-                    </label>
-                    <select
-                      id="departamento_direccion"
-                      name="departamento_direccion"
-                      value={formData.departamento_direccion}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                    >
-                      <option value="">Seleccionar</option>
-                      <option value="La Paz">La Paz</option>
-                      <option value="Cochabamba">Cochabamba</option>
-                      <option value="Santa Cruz">Santa Cruz</option>
-                      <option value="Oruro">Oruro</option>
-                      <option value="Potosí">Potosí</option>
-                      <option value="Tarija">Tarija</option>
-                      <option value="Chuquisaca">Chuquisaca</option>
-                      <option value="Beni">Beni</option>
-                      <option value="Pando">Pando</option>
-                    </select>
-                  </div>
+                {/* Ciudad */}
+                <div>
+                  <label htmlFor="ciudad_direccion" className="block text-sm font-medium text-green-400 mb-2">
+                    Ciudad <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="ciudad_direccion"
+                    name="ciudad_direccion"
+                    value={formData.ciudad_direccion}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    placeholder="La Paz"
+                  />
                 </div>
 
                 {/* Código Postal */}

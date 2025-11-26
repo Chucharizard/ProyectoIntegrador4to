@@ -1,4 +1,5 @@
 import axiosInstance from '../api/axios';
+import { usuariosCache } from '../utils/cache';
 
 const BASE_URL = '/usuarios/';
 
@@ -6,7 +7,21 @@ export const usuarioService = {
   // Obtener todos los usuarios
   async getAll(signal) {
     try {
+      // 1. Intentar caché primero
+      const cached = usuariosCache.get();
+      if (cached) {
+        console.log('✅ [USUARIOS] Usando caché');
+        return cached;
+      }
+
+      // 2. Si no hay caché, hacer petición
+      console.log('📡 [USUARIOS] Cargando desde API...');
       const response = await axiosInstance.get(BASE_URL, { signal });
+      
+      // 3. Guardar en caché
+      usuariosCache.set(response.data);
+      console.log('💾 [USUARIOS] Guardado en caché');
+      
       return response.data;
     } catch (error) {
       // No loguear errores de cancelación
@@ -32,6 +47,7 @@ export const usuarioService = {
   async create(usuarioData) {
     try {
       const response = await axiosInstance.post(BASE_URL, usuarioData);
+      usuariosCache.clear(); // ✅ Invalidar caché
       return response.data;
     } catch (error) {
       console.error('Error creating usuario:', error);
@@ -43,6 +59,7 @@ export const usuarioService = {
   async update(ci, usuarioData) {
     try {
       const response = await axiosInstance.put(`${BASE_URL}${ci}`, usuarioData);
+      usuariosCache.clear(); // ✅ Invalidar caché
       return response.data;
     } catch (error) {
       console.error(`Error updating usuario ${ci}:`, error);
@@ -54,6 +71,7 @@ export const usuarioService = {
   async delete(ci) {
     try {
       const response = await axiosInstance.delete(`${BASE_URL}${ci}`);
+      usuariosCache.clear(); // ✅ Invalidar caché
       return response.data;
     } catch (error) {
       console.error(`Error deleting usuario ${ci}:`, error);

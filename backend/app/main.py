@@ -3,8 +3,10 @@ Punto de entrada de la aplicación FastAPI
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import get_settings
-from app.routes import usuarios, empleados, propietarios, clientes, direcciones, propiedades, imagenes_propiedad, documentos_propiedad, citas_visita, contratos_operacion, pagos, roles, desempeno_asesor, ganancias_empleado
+from app.routes import usuarios, empleados, propietarios, clientes, direcciones, propiedades, imagenes_propiedad, documentos_propiedad, citas_visita, contratos_operacion, pagos, roles, desempeno_asesor, ganancias_empleado, detalle_propiedad
+import os
 
 settings = get_settings()
 
@@ -25,6 +27,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 📂 Crear carpeta uploads si no existe
+uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+
+# 🖼️ Servir archivos estáticos (imágenes subidas)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 
 # Incluir routers
 app.include_router(usuarios.router, prefix="/api", tags=["Usuarios"])
@@ -41,6 +50,7 @@ app.include_router(pagos.router, prefix="/api", tags=["Pagos"])
 app.include_router(roles.router, prefix="/api", tags=["Roles"])
 app.include_router(desempeno_asesor.router, prefix="/api", tags=["Desempeño de Asesores"])
 app.include_router(ganancias_empleado.router, prefix="/api", tags=["Ganancias de Empleados"])
+app.include_router(detalle_propiedad.router, prefix="/api", tags=["Detalle de Propiedades"])
 
 
 @app.get("/")

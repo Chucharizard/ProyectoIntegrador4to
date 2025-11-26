@@ -47,8 +47,8 @@ const CitaForm = () => {
   const loadOptions = async () => {
     try {
       const [propiedadesData, clientesData, usuariosData] = await Promise.all([
-        propiedadService.getAll(),
-        clienteService.getAll(),
+        propiedadService.getAllSimple(),
+        clienteService.getAllSimple(),
         usuarioService.getAll()
       ]);
 

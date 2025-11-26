@@ -22,6 +22,9 @@ import ContratoForm from './pages/contratos/ContratoForm';
 import ContratoDetail from './pages/contratos/ContratoDetail';
 import PagosList from './pages/pagos/PagosList';
 import PagoForm from './pages/pagos/PagoForm';
+import PublicacionesPage from './pages/publicaciones/PublicacionesPage';
+import NuevaPublicacionPage from './pages/publicaciones/NuevaPublicacionPage';
+import EditarPublicacionPage from './pages/publicaciones/EditarPublicacionPage';
 
 function App() {
   return (
@@ -117,6 +120,11 @@ function App() {
                     <Route path="/pagos" element={<PagosList />} />
                     <Route path="/pagos/nuevo" element={<PagoForm />} />
                     <Route path="/pagos/editar/:id" element={<PagoForm />} />
+                    
+                    {/* Publicaciones */}
+                    <Route path="/publicaciones" element={<PublicacionesPage />} />
+                    <Route path="/publicaciones/nueva" element={<NuevaPublicacionPage />} />
+                    <Route path="/publicaciones/editar/:id" element={<EditarPublicacionPage />} />
                     
                     {/* Visitas */}
                     <Route 

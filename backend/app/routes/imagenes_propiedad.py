@@ -81,6 +81,28 @@ async def listar_imagenes(
         raise HTTPException(status_code=500, detail=f"Error al obtener imágenes: {str(e)}")
 
 
+@router.get("/imagenes-propiedad/propiedad/{id_propiedad}", response_model=List[ImagenPropiedadResponse])
+async def obtener_imagenes_por_propiedad(
+    id_propiedad: str,
+    current_user = Depends(get_current_active_user)
+):
+    """
+    Obtiene todas las imágenes de una propiedad específica ordenadas por order_imagen.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        result = supabase.table("imagenpropiedad")\
+            .select("*")\
+            .eq("id_propiedad", id_propiedad)\
+            .order("orden_imagen")\
+            .execute()
+        
+        return result.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener imágenes: {str(e)}")
+
+
 @router.get("/imagenes-propiedad/{id_imagen}", response_model=ImagenPropiedadResponse)
 async def obtener_imagen(
     id_imagen: str,
@@ -188,3 +210,122 @@ async def eliminar_imagen(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al eliminar la imagen: {str(e)}")
+
+
+# ==========================================
+# 📸 NUEVO: UPLOAD DE IMÁGENES DESDE MÓVIL
+# ==========================================
+
+from fastapi import UploadFile, File
+import uuid
+import os
+from datetime import datetime
+
+@router.post("/imagenes-propiedad/upload/{id_propiedad}")
+async def subir_imagenes_propiedad(
+    id_propiedad: str,
+    imagenes: List[UploadFile] = File(...),
+    current_user = Depends(get_current_active_user)
+):
+    """
+    📱 Sube múltiples imágenes directamente desde la app móvil.
+    
+    **Flujo:**
+    1. Recibe archivos desde FormData
+    2. Valida que sean imágenes
+    3. Guarda en carpeta local o Supabase Storage
+    4. Registra URLs en base de datos
+    
+    **Uso desde React Native:**
+    ```javascript
+    const formData = new FormData();
+    imagenes.forEach((uri, index) => {
+      formData.append('imagenes', {
+        uri,
+        name: `foto_${index}.jpg`,
+        type: 'image/jpeg',
+      });
+    });
+    
+    await axios.post(`/imagenes-propiedad/upload/${propiedadId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    ```
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        # 1. Verificar que la propiedad existe
+        propiedad = supabase.table("propiedad").select("*").eq("id_propiedad", id_propiedad).execute()
+        if not propiedad.data:
+            raise HTTPException(status_code=404, detail="Propiedad no encontrada")
+        
+        imagenes_guardadas = []
+        
+        for index, imagen in enumerate(imagenes):
+            # 2. Validar tipo de archivo
+            if not imagen.content_type or not imagen.content_type.startswith("image/"):
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"El archivo '{imagen.filename}' no es una imagen válida"
+                )
+            
+            # 3. Generar nombre único
+            filename = imagen.filename or "imagen.jpg"
+            extension = filename.split(".")[-1] if "." in filename else "jpg"
+            nombre_archivo = f"{uuid.uuid4()}.{extension}"
+            
+            # 4. OPCIÓN A: Guardar en carpeta local (desarrollo)
+            # Crear carpeta si no existe
+            upload_dir = os.path.join("uploads", "propiedades", str(id_propiedad))
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            file_path = os.path.join(upload_dir, nombre_archivo)
+            
+            # Guardar archivo
+            file_content = await imagen.read()
+            with open(file_path, "wb") as f:
+                f.write(file_content)
+            
+            # URL accesible (ajusta según tu configuración)
+            url_imagen = f"/uploads/propiedades/{id_propiedad}/{nombre_archivo}"
+            
+            # 5. OPCIÓN B: Supabase Storage (producción) - DESCOMENTADO CUANDO ESTÉ CONFIGURADO
+            """
+            bucket_name = "propiedades"
+            storage_path = f"{id_propiedad}/{nombre_archivo}"
+            
+            supabase.storage.from_(bucket_name).upload(
+                path=storage_path,
+                file=file_content,
+                file_options={"content-type": imagen.content_type}
+            )
+            
+            url_imagen = supabase.storage.from_(bucket_name).get_public_url(storage_path)
+            """
+            
+            # 6. Registrar en base de datos
+            imagen_data = {
+                "id_propiedad": id_propiedad,
+                "url_imagen": url_imagen,
+                "descripcion_imagen": f"Imagen {index + 1} - Subida por {current_user.get('nombre_usuario', 'usuario')} el {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                "es_portada_imagen": index == 0,  # Primera imagen como portada
+                "orden_imagen": index
+            }
+            
+            result = supabase.table("imagenpropiedad").insert(imagen_data).execute()
+            
+            if result.data:
+                imagenes_guardadas.append(result.data[0])
+        
+        return {
+            "mensaje": f"✅ {len(imagenes_guardadas)} imágenes subidas exitosamente",
+            "propiedad_id": id_propiedad,
+            "imagenes": imagenes_guardadas,
+            "portada": imagenes_guardadas[0]["url_imagen"] if imagenes_guardadas else None
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al subir imágenes: {str(e)}")

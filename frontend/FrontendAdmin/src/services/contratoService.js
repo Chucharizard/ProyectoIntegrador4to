@@ -1,4 +1,5 @@
 import axiosInstance from '../api/axios';
+import { contratosCache } from '../utils/cache';
 
 const ENDPOINT = '/contratos';
 
@@ -10,6 +11,17 @@ const contratoService = {
    * Obtener todos los contratos con filtros opcionales
    */
   getAll: async (filters = {}, signal) => {
+    const hasFilters = Object.keys(filters).length > 0;
+    
+    // ✅ Solo cachear si NO hay filtros
+    if (!hasFilters) {
+      const cached = contratosCache.get();
+      if (cached) {
+        console.log('✅ [CONTRATOS] Usando caché');
+        return cached;
+      }
+    }
+    
     const params = new URLSearchParams();
     
     if (filters.estado) params.append('estado', filters.estado);
@@ -22,7 +34,15 @@ const contratoService = {
     const queryString = params.toString();
     const url = queryString ? `${ENDPOINT}/?${queryString}` : `${ENDPOINT}/`;
     
+    console.log('📡 [CONTRATOS] Cargando desde API...');
     const response = await axiosInstance.get(url, { signal });
+    
+    // ✅ Guardar en caché solo si no hay filtros
+    if (!hasFilters) {
+      contratosCache.set(response.data);
+      console.log('💾 [CONTRATOS] Guardado en caché');
+    }
+    
     return response.data;
   },
 
@@ -47,6 +67,7 @@ const contratoService = {
    */
   create: async (contratoData) => {
     const response = await axiosInstance.post(`${ENDPOINT}/`, contratoData);
+    contratosCache.clear(); // ✅ Invalidar caché
     return response.data;
   },
 
@@ -55,6 +76,7 @@ const contratoService = {
    */
   update: async (id, contratoData) => {
     const response = await axiosInstance.put(`${ENDPOINT}/${id}`, contratoData);
+    contratosCache.clear(); // ✅ Invalidar caché
     return response.data;
   },
 
@@ -63,6 +85,7 @@ const contratoService = {
    */
   delete: async (id) => {
     const response = await axiosInstance.delete(`${ENDPOINT}/${id}`);
+    contratosCache.clear(); // ✅ Invalidar caché
     return response.data;
   }
 };

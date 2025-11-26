@@ -42,8 +42,8 @@ function ContratosList() {
 
         const [contratosData, propiedadesData, clientesData, usuariosData] = await Promise.all([
           contratoService.getAll(filters, controller.signal),
-          propiedadService.getAll(controller.signal),
-          clienteService.getAll(controller.signal),
+          propiedadService.getAllSimple(controller.signal),
+          clienteService.getAllSimple(controller.signal),
           usuarioService.getAll(controller.signal)
         ]);
 

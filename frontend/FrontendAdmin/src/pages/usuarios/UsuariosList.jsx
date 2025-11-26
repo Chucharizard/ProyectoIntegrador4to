@@ -24,6 +24,11 @@ const UsuariosList = () => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Estados de paginación
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(30);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,6 +95,9 @@ const UsuariosList = () => {
     return rol ? rol.nombre_rol : 'Sin rol';
   };
 
+  // ====================================
+  // 🔍 FILTRADO
+  // ====================================
   const filteredUsuarios = usuarios.filter(user => {
     if (!user) return false;
     const term = searchTerm.toLowerCase();
@@ -99,6 +107,25 @@ const UsuariosList = () => {
     );
   });
 
+  // ====================================
+  // 📄 PAGINACIÓN LOCAL
+  // ====================================
+  const totalFilteredItems = filteredUsuarios.length;
+  const totalPages = Math.ceil(totalFilteredItems / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedUsuarios = filteredUsuarios.slice(startIndex, endIndex);
+  const hasNext = page < totalPages;
+  const hasPrev = page > 1;
+
+  // Resetear a página 1 cuando cambia la búsqueda
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
+  // ====================================
+  // 📊 ESTADÍSTICAS
+  // ====================================
   const stats = {
     total: usuarios.length,
     filtered: filteredUsuarios.length,
@@ -206,13 +233,51 @@ const UsuariosList = () => {
         placeholder="Buscar por CI empleado o nombre de usuario..."
       />
 
+      {/* Info de resultados */}
+      <div className="text-sm text-gray-400">
+        Mostrando <span className="text-green-400 font-semibold">{(page - 1) * pageSize + 1}</span> - <span className="text-green-400 font-semibold">{Math.min(page * pageSize, totalFilteredItems)}</span> de <span className="text-green-400 font-semibold">{totalFilteredItems}</span> usuarios
+      </div>
+
       {/* ✨ Data Table Component */}
       <DataTable
         columns={columns}
-        data={filteredUsuarios}
+        data={paginatedUsuarios}
         emptyMessage="No se encontraron usuarios"
         emptyIcon={ShieldCheckIcon}
       />
+
+      {/* ✨ Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-white/10 pt-4 bg-white/5 p-4 rounded-lg">
+          <div className="text-sm text-gray-400">
+            Página <span className="text-green-400 font-semibold">{page}</span> de <span className="text-green-400 font-semibold">{totalPages}</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={!hasPrev}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                hasPrev
+                  ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
+                  : 'bg-gray-800/50 text-gray-600 cursor-not-allowed border border-gray-700/20'
+              }`}
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={!hasNext}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                hasNext
+                  ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
+                  : 'bg-gray-800/50 text-gray-600 cursor-not-allowed border border-gray-700/20'
+              }`}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -249,7 +249,7 @@ useEffect(() => {
 
               {/* Subtítulo */}
               <p className="text-lg text-gray-300 max-w-sm mx-auto leading-relaxed">
-                Sistema de gestión inmobiliaria profesional
+                Sistema de gestión inmobiliaria
               </p>
 
               {/* Indicadores */}
@@ -515,7 +515,7 @@ useEffect(() => {
 
         {/* Footer */}
         <div className="text-center mt-5 text-sm text-white/90 drop-shadow-xl">
-          <p>© 2025 Sistema de Gestión Inmobiliaria • Todos los derechos reservados</p>
+          <p>© 2025 Sistema de Gestión Inmobiliaria </p>
         </div>
       </div>
     </div>

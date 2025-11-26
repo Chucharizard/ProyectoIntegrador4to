@@ -15,6 +15,7 @@ import {
   XMarkIcon,
   ChevronRightIcon,
   SparklesIcon,
+  MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 
 // ✅ Componente del Canvas separado y memoizado
@@ -193,6 +194,12 @@ const Sidebar = () => {
       icon: CurrencyDollarIcon,
       roles: [1, 2],
     },
+    {
+      name: 'Publicaciones',
+      path: '/publicaciones',
+      icon: MegaphoneIcon,
+      roles: [1, 2],
+    },
   ];
 
   const filteredMenu = menuItems.filter((item) =>
@@ -313,7 +320,7 @@ const Sidebar = () => {
           {/* Navigation Menu */}
           <nav className="flex-1 overflow-y-auto py-3 custom-scrollbar bg-primary-900/10 backdrop-blur-sm">
             <ul className="space-y-1 px-2.5">
-              {filteredMenu.map((item, index) => {
+              {filteredMenu.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
                 return (
