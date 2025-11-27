@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "Inmobiliaria Asesores",
+    "slug": "inmobiliaria-asesores",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#007AFF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.inmobiliaria.asesores",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Necesitamos acceso a la cámara para capturar fotos de propiedades",
+        "NSLocationWhenInUseUsageDescription": "Necesitamos acceso a tu ubicación para agregar coordenadas GPS a las fotos",
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tus fotos para seleccionar imágenes de propiedades"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.inmobiliaria.asesores",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite a la app acceder a tus fotos para seleccionar imágenes de propiedades",
+          "cameraPermission": "Permite a la app acceder a la cámara para capturar fotos de propiedades"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permite a la app acceder a tu ubicación para agregar coordenadas GPS a las fotos"
+        }
+      ]
+    ]
+  }
+}
