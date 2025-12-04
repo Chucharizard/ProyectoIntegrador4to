@@ -160,7 +160,7 @@ export function PasoDetalles({ detalles, onChange, onNext, onBack }) {
   );
 }
 
-export function PasoImagenes({ imagenes, onToggle, onMarcarPortada, onNext, onBack, onUploadImages, propiedadId }) {
+export function PasoImagenes({ imagenes, onToggle, onMarcarPortada, onNext, onBack, onUploadImages, onDeleteImage, propiedadId }) {
   const seleccionadas = imagenes.filter(img => img.seleccionada);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -291,6 +291,15 @@ export function PasoImagenes({ imagenes, onToggle, onMarcarPortada, onNext, onBa
                 onLoad={() => console.log('✅ Imagen cargada:', getImageUrl(img.url_imagen))}
               />
 
+              {/* Botón de eliminar (siempre visible en esquina superior derecha) */}
+              <button
+                onClick={() => onDeleteImage(img.id_imagen, img.descripcion_imagen)}
+                className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg font-semibold transition-colors z-10 shadow-lg"
+                title="Eliminar imagen"
+              >
+                🗑️
+              </button>
+
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
                 {/* Checkbox Seleccionar */}
@@ -327,7 +336,7 @@ export function PasoImagenes({ imagenes, onToggle, onMarcarPortada, onNext, onBa
                 </div>
               )}
               {img.es_portada_imagen && img.seleccionada && (
-                <div className="absolute top-2 right-2 bg-yellow-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                <div className="absolute bottom-2 left-2 bg-yellow-600 text-white px-2 py-1 rounded text-xs font-semibold">
                   ⭐ Portada
                 </div>
               )}

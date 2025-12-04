@@ -8,6 +8,17 @@ import BackButton from '../../components/shared/BackButton';
 import FormCard from '../../components/shared/FormCard';
 import InfoBox from '../../components/shared/InfoBox';
 
+// ✨ Importar validaciones
+import {
+  validateCI,
+  validateText,
+  validatePhone,
+  validateEmail,
+  validateDate,
+  MAX_LENGTH,
+  sanitizeString
+} from '../../utils/validations';
+
 const EmpleadoForm = () => {
   const { ci } = useParams();
   const navigate = useNavigate();
@@ -19,12 +30,15 @@ const EmpleadoForm = () => {
     nombres_completo_empleado: '',
     apellidos_completo_empleado: '',
     fecha_nacimiento_empleado: '',
-    direccion_empleado: '',
+    // direccion_empleado: '', // ⚠️ No existe en la BD - comentado para futuro uso
     telefono_empleado: '',
     correo_electronico_empleado: '',
-    fecha_contratacion_empleado: '',
+    // fecha_contratacion_empleado: '', // ⚠️ No existe en la BD - comentado para futuro uso
     es_activo_empleado: true
   });
+
+  // ✨ Estado para errores de validación
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,10 +60,10 @@ const EmpleadoForm = () => {
             nombres_completo_empleado: empleadoData.nombres_completo_empleado,
             apellidos_completo_empleado: empleadoData.apellidos_completo_empleado,
             fecha_nacimiento_empleado: empleadoData.fecha_nacimiento_empleado,
-            direccion_empleado: empleadoData.direccion_empleado || '',
+            // direccion_empleado: empleadoData.direccion_empleado || '', // ⚠️ No existe en la BD
             telefono_empleado: empleadoData.telefono_empleado,
             correo_electronico_empleado: empleadoData.correo_electronico_empleado || '',
-            fecha_contratacion_empleado: empleadoData.fecha_contratacion_empleado,
+            // fecha_contratacion_empleado: empleadoData.fecha_contratacion_empleado, // ⚠️ No existe en la BD
             es_activo_empleado: empleadoData.es_activo_empleado
           });
         }
@@ -81,13 +95,87 @@ const EmpleadoForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Sanitizar el valor para campos de texto
+    const sanitizedValue = ['text', 'email', 'tel'].includes(type) 
+      ? sanitizeString(value) 
+      : value;
+    
+    const finalValue = type === 'checkbox' ? checked : sanitizedValue;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: finalValue
     }));
+
+    // ✨ Validar el campo en tiempo real (excepto checkbox)
+    if (type !== 'checkbox') {
+      validateField(name, finalValue);
+    }
+  };
+
+  // ✨ Validar campo individual
+  const validateField = (fieldName, value) => {
+    let error = null;
+
+    switch (fieldName) {
+      case 'ci_empleado':
+        error = validateCI(value, true);
+        break;
+      case 'nombres_completo_empleado':
+        error = validateText(value, 'Nombres', MAX_LENGTH.NOMBRES, true);
+        break;
+      case 'apellidos_completo_empleado':
+        error = validateText(value, 'Apellidos', MAX_LENGTH.APELLIDOS, true);
+        break;
+      case 'telefono_empleado':
+        error = validatePhone(value, false);
+        break;
+      case 'correo_electronico_empleado':
+        error = validateEmail(value, false);
+        break;
+      case 'fecha_nacimiento_empleado':
+        error = validateDate(value, 'Fecha de nacimiento', false, { notFuture: true });
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: error,
+    }));
+
+    return error;
+  };
+
+  // ✨ Validar todos los campos
+  const validateAllFields = () => {
+    const newErrors = {};
+    
+    newErrors.ci_empleado = validateCI(formData.ci_empleado, true);
+    newErrors.nombres_completo_empleado = validateText(formData.nombres_completo_empleado, 'Nombres', MAX_LENGTH.NOMBRES, true);
+    newErrors.apellidos_completo_empleado = validateText(formData.apellidos_completo_empleado, 'Apellidos', MAX_LENGTH.APELLIDOS, true);
+    newErrors.telefono_empleado = validatePhone(formData.telefono_empleado, false);
+    newErrors.correo_electronico_empleado = validateEmail(formData.correo_electronico_empleado, false);
+    newErrors.fecha_nacimiento_empleado = validateDate(formData.fecha_nacimiento_empleado, 'Fecha de nacimiento', false, { notFuture: true });
+
+    // Filtrar errores nulos
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, error]) => error !== null)
+    );
+
+    setErrors(filteredErrors);
+    return Object.keys(filteredErrors).length === 0;
   };
 
   const validateForm = () => {
+    // ✨ Usar la nueva función de validación
+    if (!validateAllFields()) {
+      toast.error('Por favor corrige los errores en el formulario');
+      return false;
+    }
+    
     if (!formData.ci_empleado.trim()) {
       toast.error('El CI es obligatorio');
       return false;
@@ -108,10 +196,11 @@ const EmpleadoForm = () => {
       toast.error('El teléfono es obligatorio');
       return false;
     }
-    if (!formData.fecha_contratacion_empleado) {
-      toast.error('La fecha de contratación es obligatoria');
-      return false;
-    }
+    // ⚠️ Campo comentado - no existe en la BD
+    // if (!formData.fecha_contratacion_empleado) {
+    //   toast.error('La fecha de contratación es obligatoria');
+    //   return false;
+    // }
 
     return true;
   };
@@ -197,11 +286,21 @@ const EmpleadoForm = () => {
                 value={formData.ci_empleado}
                 onChange={handleChange}
                 disabled={isEditMode}
-                className={`w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
-                  isEditMode ? 'cursor-not-allowed opacity-60' : ''
+                maxLength={MAX_LENGTH.CI}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                  isEditMode ? 'cursor-not-allowed opacity-60 border-gray-700 focus:ring-green-500/50 focus:border-green-500/50' : 
+                  errors.ci_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
                 }`}
                 placeholder="12345678"
               />
+              {!isEditMode && errors.ci_empleado && (
+                <p className="text-red-400 text-xs mt-1">⚠️ {errors.ci_empleado}</p>
+              )}
+              {!isEditMode && !errors.ci_empleado && (
+                <p className="text-gray-500 text-xs mt-1">
+                  {formData.ci_empleado.length}/{MAX_LENGTH.CI} caracteres
+                </p>
+              )}
               {isEditMode && (
                 <p className="text-xs text-gray-500 mt-1">El CI no se puede modificar</p>
               )}
@@ -218,9 +317,19 @@ const EmpleadoForm = () => {
                 name="nombres_completo_empleado"
                 value={formData.nombres_completo_empleado}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.NOMBRES}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                  errors.nombres_completo_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
                 placeholder="Juan Carlos"
               />
+              {errors.nombres_completo_empleado ? (
+                <p className="text-red-400 text-xs mt-1">⚠️ {errors.nombres_completo_empleado}</p>
+              ) : (
+                <p className="text-gray-500 text-xs mt-1">
+                  {formData.nombres_completo_empleado.length}/{MAX_LENGTH.NOMBRES} caracteres
+                </p>
+              )}
             </div>
 
             {/* Apellidos */}
@@ -234,9 +343,19 @@ const EmpleadoForm = () => {
                 name="apellidos_completo_empleado"
                 value={formData.apellidos_completo_empleado}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.APELLIDOS}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                  errors.apellidos_completo_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
                 placeholder="Pérez García"
               />
+              {errors.apellidos_completo_empleado ? (
+                <p className="text-red-400 text-xs mt-1">⚠️ {errors.apellidos_completo_empleado}</p>
+              ) : (
+                <p className="text-gray-500 text-xs mt-1">
+                  {formData.apellidos_completo_empleado.length}/{MAX_LENGTH.APELLIDOS} caracteres
+                </p>
+              )}
             </div>
 
             {/* Fecha de Nacimiento */}
@@ -250,12 +369,17 @@ const EmpleadoForm = () => {
                 name="fecha_nacimiento_empleado"
                 value={formData.fecha_nacimiento_empleado}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 focus:ring-2 transition-all ${
+                  errors.fecha_nacimiento_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
               />
+              {errors.fecha_nacimiento_empleado && (
+                <p className="text-red-400 text-xs mt-1">⚠️ {errors.fecha_nacimiento_empleado}</p>
+              )}
             </div>
 
-            {/* Dirección */}
-            <div className="md:col-span-2">
+            {/* ⚠️ Campo comentado - no existe en la BD (Dirección) */}
+            {/* <div className="md:col-span-2">
               <label htmlFor="direccion_empleado" className="block text-sm font-medium text-green-400 mb-2">
                 Dirección
               </label>
@@ -268,7 +392,7 @@ const EmpleadoForm = () => {
                 className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
                 placeholder="Av. Principal #123"
               />
-            </div>
+            </div> */}
 
             {/* Teléfono */}
             <div>
@@ -281,9 +405,19 @@ const EmpleadoForm = () => {
                 name="telefono_empleado"
                 value={formData.telefono_empleado}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.TELEFONO}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                  errors.telefono_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
                 placeholder="70123456"
               />
+              {errors.telefono_empleado ? (
+                <p className="text-red-400 text-xs mt-1">⚠️ {errors.telefono_empleado}</p>
+              ) : (
+                <p className="text-gray-500 text-xs mt-1">
+                  {formData.telefono_empleado.length}/{MAX_LENGTH.TELEFONO} caracteres
+                </p>
+              )}
             </div>
 
             {/* Correo */}
@@ -297,13 +431,23 @@ const EmpleadoForm = () => {
                 name="correo_electronico_empleado"
                 value={formData.correo_electronico_empleado}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.EMAIL}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                  errors.correo_electronico_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
                 placeholder="empleado@ejemplo.com"
               />
+              {errors.correo_electronico_empleado ? (
+                <p className="text-red-400 text-xs mt-1">⚠️ {errors.correo_electronico_empleado}</p>
+              ) : (
+                <p className="text-gray-500 text-xs mt-1">
+                  {formData.correo_electronico_empleado.length}/{MAX_LENGTH.EMAIL} caracteres
+                </p>
+              )}
             </div>
 
-            {/* Fecha de Contratación */}
-            <div>
+            {/* ⚠️ Campo comentado - no existe en la BD (Fecha de Contratación) */}
+            {/* <div>
               <label htmlFor="fecha_contratacion_empleado" className="block text-sm font-medium text-green-400 mb-2">
                 Fecha de Contratación <span className="text-red-400">*</span>
               </label>
@@ -315,7 +459,7 @@ const EmpleadoForm = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
               />
-            </div>
+            </div> */}
           </div>
 
           {/* Estado Activo */}

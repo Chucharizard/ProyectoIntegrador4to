@@ -3,12 +3,23 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { propiedadService } from '../../services/propiedadService';
 import { propietarioService } from '../../services/propietarioService';
 import { direccionService } from '../../services/direccionService';
-import { MapPinIcon, HomeIcon, CurrencyDollarIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { usuarioService } from '../../services/usuarioService';
+import { empleadoService } from '../../services/empleadoService';
+import { MapPinIcon, HomeIcon, CurrencyDollarIcon, CalendarIcon, UserIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 // ✨ Importar componentes reutilizables
 import BackButton from '../../components/shared/BackButton';
 import FormCard from '../../components/shared/FormCard';
+import MapSelector from '../../components/shared/MapSelector';
+
+// 🛡️ Importar utilidades de validación
+import { 
+  validateField, 
+  validateAllFields, 
+  MAX_LENGTH, 
+  NUMERIC_LIMITS 
+} from '../../utils/validations';
 
 const PropiedadForm = () => {
   const { id } = useParams();
@@ -17,6 +28,10 @@ const PropiedadForm = () => {
 
   const [loading, setLoading] = useState(false);
   const [propietarios, setPropietarios] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
+  const [empleados, setEmpleados] = useState([]);
+  const [showMapSelector, setShowMapSelector] = useState(false);
+  const [errors, setErrors] = useState({});
   
   const [formData, setFormData] = useState({
     titulo_propiedad: '',
@@ -31,10 +46,11 @@ const PropiedadForm = () => {
     porcentaje_colocacion_propiedad: '',
     fecha_captacion_propiedad: '',
     fecha_publicacion_propiedad: '',
+    id_usuario_captador: '',
     calle_direccion: '',
     barrio_direccion: '',
     ciudad_direccion: '',
-    codigo_postal_direccion: '',
+    // codigo_postal_direccion: '', // ⚠️ Campo eliminado - no es necesario
     latitud_direccion: '',
     longitud_direccion: ''
   });
@@ -48,9 +64,11 @@ const PropiedadForm = () => {
         setLoading(true);
 
         if (isEditMode) {
-          const [propiedadData, propietariosData] = await Promise.all([
+          const [propiedadData, propietariosData, usuariosData, empleadosData] = await Promise.all([
             propiedadService.getById(id, controller.signal),
-            propietarioService.getAll(controller.signal)
+            propietarioService.getAll(controller.signal),
+            usuarioService.getAll(controller.signal),
+            empleadoService.getAll(controller.signal)
           ]);
 
           if (isMounted) {
@@ -72,20 +90,29 @@ const PropiedadForm = () => {
               porcentaje_colocacion_propiedad: propiedadData.porcentaje_colocacion_propiedad || '',
               fecha_captacion_propiedad: propiedadData.fecha_captacion_propiedad || '',
               fecha_publicacion_propiedad: propiedadData.fecha_publicacion_propiedad || '',
+              id_usuario_captador: propiedadData.id_usuario_captador || '',
               calle_direccion: direccionData?.calle_direccion || '',
-              barrio_direccion: direccionData?.barrio_direccion || '',
+              barrio_direccion: direccionData?.zona_direccion || '',  // ✅ Corregido: zona_direccion
               ciudad_direccion: direccionData?.ciudad_direccion || '',
-              codigo_postal_direccion: direccionData?.codigo_postal_direccion || '',
+              // codigo_postal_direccion: direccionData?.codigo_postal_direccion || '', // ⚠️ Campo eliminado
               latitud_direccion: direccionData?.latitud_direccion || '',
               longitud_direccion: direccionData?.longitud_direccion || ''
             });
             setPropietarios(propietariosData);
+            setUsuarios(usuariosData);
+            setEmpleados(empleadosData);
           }
         } else {
-          const propietariosData = await propietarioService.getAll(controller.signal);
+          const [propietariosData, usuariosData, empleadosData] = await Promise.all([
+            propietarioService.getAll(controller.signal),
+            usuarioService.getAll(controller.signal),
+            empleadoService.getAll(controller.signal)
+          ]);
           
           if (isMounted) {
             setPropietarios(propietariosData);
+            setUsuarios(usuariosData);
+            setEmpleados(empleadosData);
           }
         }
       } catch (error) {
@@ -114,19 +141,40 @@ const PropiedadForm = () => {
     };
   }, [id, isEditMode, navigate]);
 
+  // 🔧 Helper para obtener nombre completo del empleado de un usuario
+  const getUsuarioNombreCompleto = (idUsuario) => {
+    const usuario = usuarios.find(u => u.id_usuario === idUsuario);
+    if (!usuario) return 'Usuario desconocido';
+    
+    const empleado = empleados.find(e => e.ci_empleado === usuario.ci_empleado);
+    if (!empleado) return usuario.nombre_usuario;
+    
+    return `${empleado.nombres_completo_empleado} ${empleado.apellidos_completo_empleado}`;
+  };
+
+  // 🎯 Handler para cambios en inputs con validación en tiempo real
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Validar campo en tiempo real
+    const error = validateField(name, value, formData);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
   };
 
+  // 🔍 Validación completa del formulario
   const validateForm = () => {
-    if (!formData.titulo_propiedad.trim()) {
-      toast.error('El título es obligatorio');
-      return false;
-    }
+    const validationErrors = validateAllFields(formData);
+    setErrors(validationErrors);
+
+    // Validaciones adicionales específicas del formulario
     if (!formData.ci_propietario) {
       toast.error('Debes seleccionar un propietario');
       return false;
@@ -135,16 +183,25 @@ const PropiedadForm = () => {
       toast.error('Debes seleccionar el tipo de operación');
       return false;
     }
-    if (!formData.calle_direccion.trim()) {
-      toast.error('La calle es obligatoria');
-      return false;
-    }
-    if (!formData.ciudad_direccion.trim()) {
-      toast.error('La ciudad es obligatoria');
+
+    // Si hay errores de validación, mostrar el primero
+    const errorFields = Object.keys(validationErrors);
+    if (errorFields.length > 0) {
+      const firstError = validationErrors[errorFields[0]];
+      toast.error(firstError);
       return false;
     }
 
     return true;
+  };
+
+  // 🗺️ Handler para selección de ubicación en mapa
+  const handleLocationSelect = (lat, lng) => {
+    setFormData(prev => ({
+      ...prev,
+      latitud_direccion: lat,
+      longitud_direccion: lng
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -159,9 +216,9 @@ const PropiedadForm = () => {
 
       const direccionData = {
         calle_direccion: formData.calle_direccion,
-        barrio_direccion: formData.barrio_direccion || null,
+        zona_direccion: formData.barrio_direccion || null,
         ciudad_direccion: formData.ciudad_direccion,
-        codigo_postal_direccion: formData.codigo_postal_direccion || null,
+        // codigo_postal_direccion: formData.codigo_postal_direccion || null, // ⚠️ Campo eliminado
         latitud_direccion: formData.latitud_direccion ? parseFloat(formData.latitud_direccion) : null,
         longitud_direccion: formData.longitud_direccion ? parseFloat(formData.longitud_direccion) : null
       };
@@ -179,6 +236,7 @@ const PropiedadForm = () => {
         porcentaje_colocacion_propiedad: formData.porcentaje_colocacion_propiedad ? parseFloat(formData.porcentaje_colocacion_propiedad) : null,
         fecha_captacion_propiedad: formData.fecha_captacion_propiedad || null,
         fecha_publicacion_propiedad: formData.fecha_publicacion_propiedad || null,
+        id_usuario_captador: formData.id_usuario_captador || null,
         direccion: direccionData
       };
 
@@ -253,9 +311,22 @@ const PropiedadForm = () => {
                     name="titulo_propiedad"
                     value={formData.titulo_propiedad}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    maxLength={MAX_LENGTH.TITULO_PROPIEDAD}
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.titulo_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="Ej: Casa moderna en zona residencial"
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    <div>
+                      {errors.titulo_propiedad && (
+                        <p className="text-red-400 text-xs">⚠️ {errors.titulo_propiedad}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {formData.titulo_propiedad.length}/{MAX_LENGTH.TITULO_PROPIEDAD}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Código y Propietario en 2 columnas */}
@@ -334,6 +405,31 @@ const PropiedadForm = () => {
                   </select>
                 </div>
 
+                {/* Usuario Captador */}
+                <div>
+                  <label htmlFor="id_usuario_captador" className="block text-sm font-medium text-green-400 mb-2">
+                    <UserIcon className="h-4 w-4 inline mr-1" />
+                    Usuario Captador
+                  </label>
+                  <select
+                    id="id_usuario_captador"
+                    name="id_usuario_captador"
+                    value={formData.id_usuario_captador}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  >
+                    <option value="">Sin asignar</option>
+                    {usuarios.map(usuario => (
+                      <option key={usuario.id_usuario} value={usuario.id_usuario}>
+                        {getUsuarioNombreCompleto(usuario.id_usuario)} - {usuario.nombre_usuario}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Selecciona el usuario que captó esta propiedad
+                  </p>
+                </div>
+
                 {/* Descripción */}
                 <div>
                   <label htmlFor="descripcion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
@@ -344,10 +440,23 @@ const PropiedadForm = () => {
                     name="descripcion_propiedad"
                     value={formData.descripcion_propiedad}
                     onChange={handleChange}
+                    maxLength={MAX_LENGTH.DESCRIPCION_PROPIEDAD}
                     rows="4"
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all resize-none"
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all resize-none ${
+                      errors.descripcion_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="Describe las características de la propiedad..."
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    <div>
+                      {errors.descripcion_propiedad && (
+                        <p className="text-red-400 text-xs">⚠️ {errors.descripcion_propiedad}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {formData.descripcion_propiedad.length}/{MAX_LENGTH.DESCRIPCION_PROPIEDAD}
+                    </span>
+                  </div>
                 </div>
               </div>
             </FormCard>
@@ -367,13 +476,20 @@ const PropiedadForm = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min={NUMERIC_LIMITS.PRECIO.min}
+                    max={NUMERIC_LIMITS.PRECIO.max}
                     id="precio_publicado_propiedad"
                     name="precio_publicado_propiedad"
                     value={formData.precio_publicado_propiedad}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.precio_publicado_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="250000.00"
                   />
+                  {errors.precio_publicado_propiedad && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ {errors.precio_publicado_propiedad}</p>
+                  )}
                 </div>
 
                 <div>
@@ -383,13 +499,20 @@ const PropiedadForm = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min={NUMERIC_LIMITS.SUPERFICIE.min}
+                    max={NUMERIC_LIMITS.SUPERFICIE.max}
                     id="superficie_propiedad"
                     name="superficie_propiedad"
                     value={formData.superficie_propiedad}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.superficie_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="150.50"
                   />
+                  {errors.superficie_propiedad && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ {errors.superficie_propiedad}</p>
+                  )}
                 </div>
 
                 <div>
@@ -399,13 +522,20 @@ const PropiedadForm = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min={NUMERIC_LIMITS.PORCENTAJE.min}
+                    max={NUMERIC_LIMITS.PORCENTAJE.max}
                     id="porcentaje_captacion_propiedad"
                     name="porcentaje_captacion_propiedad"
                     value={formData.porcentaje_captacion_propiedad}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.porcentaje_captacion_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="3.00"
                   />
+                  {errors.porcentaje_captacion_propiedad && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ {errors.porcentaje_captacion_propiedad}</p>
+                  )}
                 </div>
 
                 <div>
@@ -415,13 +545,20 @@ const PropiedadForm = () => {
                   <input
                     type="number"
                     step="0.01"
+                    min={NUMERIC_LIMITS.PORCENTAJE.min}
+                    max={NUMERIC_LIMITS.PORCENTAJE.max}
                     id="porcentaje_colocacion_propiedad"
                     name="porcentaje_colocacion_propiedad"
                     value={formData.porcentaje_colocacion_propiedad}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.porcentaje_colocacion_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="2.50"
                   />
+                  {errors.porcentaje_colocacion_propiedad && (
+                    <p className="text-red-400 text-xs mt-1">⚠️ {errors.porcentaje_colocacion_propiedad}</p>
+                  )}
                 </div>
               </div>
             </FormCard>
@@ -451,12 +588,25 @@ const PropiedadForm = () => {
                     name="calle_direccion"
                     value={formData.calle_direccion}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    maxLength={MAX_LENGTH.CALLE_DIRECCION}
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.calle_direccion ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="Av. 6 de Agosto"
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    <div>
+                      {errors.calle_direccion && (
+                        <p className="text-red-400 text-xs">⚠️ {errors.calle_direccion}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {formData.calle_direccion.length}/{MAX_LENGTH.CALLE_DIRECCION}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Barrio */}
+                {/* Barrio/Zona */}
                 <div>
                   <label htmlFor="barrio_direccion" className="block text-sm font-medium text-green-400 mb-2">
                     Barrio/Zona
@@ -467,9 +617,22 @@ const PropiedadForm = () => {
                     name="barrio_direccion"
                     value={formData.barrio_direccion}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    maxLength={MAX_LENGTH.ZONA_DIRECCION}
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.barrio_direccion ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="San Miguel"
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    <div>
+                      {errors.barrio_direccion && (
+                        <p className="text-red-400 text-xs">⚠️ {errors.barrio_direccion}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {formData.barrio_direccion.length}/{MAX_LENGTH.ZONA_DIRECCION}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Ciudad */}
@@ -483,30 +646,38 @@ const PropiedadForm = () => {
                     name="ciudad_direccion"
                     value={formData.ciudad_direccion}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    maxLength={MAX_LENGTH.CIUDAD_DIRECCION}
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.ciudad_direccion ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="La Paz"
                   />
-                </div>
-
-                {/* Código Postal */}
-                <div>
-                  <label htmlFor="codigo_postal_direccion" className="block text-sm font-medium text-green-400 mb-2">
-                    Código Postal
-                  </label>
-                  <input
-                    type="text"
-                    id="codigo_postal_direccion"
-                    name="codigo_postal_direccion"
-                    value={formData.codigo_postal_direccion}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                    placeholder="10101"
-                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <div>
+                      {errors.ciudad_direccion && (
+                        <p className="text-red-400 text-xs">⚠️ {errors.ciudad_direccion}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {formData.ciudad_direccion.length}/{MAX_LENGTH.CIUDAD_DIRECCION}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Coordenadas GPS */}
-                <div>
-                  <p className="text-sm font-medium text-green-400 mb-2">Coordenadas GPS (Opcional)</p>
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-green-400">Coordenadas GPS (Opcional)</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowMapSelector(true)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/30 rounded-lg transition-all text-sm"
+                    >
+                      <MapPinIcon className="h-4 w-4" />
+                      Seleccionar en Mapa
+                    </button>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="latitud_direccion" className="block text-xs text-gray-400 mb-1">
@@ -520,7 +691,7 @@ const PropiedadForm = () => {
                         value={formData.latitud_direccion}
                         onChange={handleChange}
                         className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                        placeholder="-16.500000"
+                        placeholder="-19.048000"
                       />
                     </div>
 
@@ -536,10 +707,16 @@ const PropiedadForm = () => {
                         value={formData.longitud_direccion}
                         onChange={handleChange}
                         className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                        placeholder="-68.150000"
+                        placeholder="-65.259500"
                       />
                     </div>
                   </div>
+                  
+                  {(formData.latitud_direccion && formData.longitud_direccion) && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      📍 Ubicación seleccionada: {formData.latitud_direccion}, {formData.longitud_direccion}
+                    </p>
+                  )}
                 </div>
               </div>
             </FormCard>
@@ -602,6 +779,16 @@ const PropiedadForm = () => {
           </button>
         </div>
       </form>
+
+      {/* 🗺️ Modal de Selección de Mapa */}
+      {showMapSelector && (
+        <MapSelector
+          initialLat={formData.latitud_direccion ? parseFloat(formData.latitud_direccion) : -19.0479}
+          initialLng={formData.longitud_direccion ? parseFloat(formData.longitud_direccion) : -65.2595}
+          onLocationSelect={handleLocationSelect}
+          onClose={() => setShowMapSelector(false)}
+        />
+      )}
     </div>
   );
 };

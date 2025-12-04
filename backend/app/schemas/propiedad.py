@@ -80,13 +80,15 @@ class PropiedadUpdate(BaseModel):
     estado_propiedad: Optional[str] = None
     fecha_publicacion_propiedad: Optional[date] = None
     fecha_cierre_propiedad: Optional[date] = None
+    id_usuario_captador: Optional[str] = None  # ✅ Agregado para poder actualizar
     id_usuario_colocador: Optional[str] = None
     porcentaje_captacion_propiedad: Optional[Decimal] = None
     porcentaje_colocacion_propiedad: Optional[Decimal] = None
+    direccion: Optional[DireccionCreate] = None  # ✅ Agregado para actualizar dirección
     
-    @field_validator('id_usuario_colocador')
+    @field_validator('id_usuario_captador', 'id_usuario_colocador')
     @classmethod
-    def limpiar_id_colocador_update(cls, v):
+    def limpiar_ids_usuario(cls, v):
         """Convertir strings vacíos a None"""
         if v == "" or v == "string" or (isinstance(v, str) and v.strip() == ""):
             return None

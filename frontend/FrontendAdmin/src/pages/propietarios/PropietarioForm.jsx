@@ -8,6 +8,17 @@ import toast from 'react-hot-toast';
 import BackButton from '../../components/shared/BackButton';
 import FormCard from '../../components/shared/FormCard';
 
+// ✨ Importar validaciones
+import {
+  validateCI,
+  validateText,
+  validatePhone,
+  validateEmail,
+  validateDate,
+  MAX_LENGTH,
+  sanitizeString
+} from '../../utils/validations';
+
 const PropietarioForm = () => {
   const { ci } = useParams();
   const navigate = useNavigate();
@@ -23,6 +34,9 @@ const PropietarioForm = () => {
     correo_electronico_propietario: '',
     es_activo_propietario: true
   });
+
+  // ✨ Estado para errores de validación
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,41 +88,84 @@ const PropietarioForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Sanitizar el valor para campos de texto
+    const sanitizedValue = ['text', 'email', 'tel'].includes(type) 
+      ? sanitizeString(value) 
+      : value;
+    
+    const finalValue = type === 'checkbox' ? checked : sanitizedValue;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: finalValue
     }));
+
+    // ✨ Validar el campo en tiempo real (excepto checkbox)
+    if (type !== 'checkbox') {
+      validateField(name, finalValue);
+    }
+  };
+
+  // ✨ Validar campo individual
+  const validateField = (fieldName, value) => {
+    let error = null;
+
+    switch (fieldName) {
+      case 'ci_propietario':
+        error = validateCI(value, true);
+        break;
+      case 'nombres_completo_propietario':
+        error = validateText(value, 'Nombres', MAX_LENGTH.NOMBRES, true);
+        break;
+      case 'apellidos_completo_propietario':
+        error = validateText(value, 'Apellidos', MAX_LENGTH.APELLIDOS, true);
+        break;
+      case 'telefono_propietario':
+        error = validatePhone(value, true);
+        break;
+      case 'correo_electronico_propietario':
+        error = validateEmail(value, true);
+        break;
+      case 'fecha_nacimiento_propietario':
+        error = validateDate(value, 'Fecha de nacimiento', true, { notFuture: true });
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: error,
+    }));
+
+    return error;
+  };
+
+  // ✨ Validar todos los campos
+  const validateAllFields = () => {
+    const newErrors = {};
+    
+    newErrors.ci_propietario = validateCI(formData.ci_propietario, true);
+    newErrors.nombres_completo_propietario = validateText(formData.nombres_completo_propietario, 'Nombres', MAX_LENGTH.NOMBRES, true);
+    newErrors.apellidos_completo_propietario = validateText(formData.apellidos_completo_propietario, 'Apellidos', MAX_LENGTH.APELLIDOS, true);
+    newErrors.telefono_propietario = validatePhone(formData.telefono_propietario, true);
+    newErrors.correo_electronico_propietario = validateEmail(formData.correo_electronico_propietario, true);
+    newErrors.fecha_nacimiento_propietario = validateDate(formData.fecha_nacimiento_propietario, 'Fecha de nacimiento', true, { notFuture: true });
+
+    // Filtrar errores nulos
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, error]) => error !== null)
+    );
+
+    setErrors(filteredErrors);
+    return Object.keys(filteredErrors).length === 0;
   };
 
   const validateForm = () => {
-    if (!formData.ci_propietario.trim()) {
-      toast.error('La CI es obligatoria');
-      return false;
-    }
-    if (!formData.nombres_completo_propietario.trim()) {
-      toast.error('Los nombres son obligatorios');
-      return false;
-    }
-    if (!formData.apellidos_completo_propietario.trim()) {
-      toast.error('Los apellidos son obligatorios');
-      return false;
-    }
-    if (!formData.fecha_nacimiento_propietario) {
-      toast.error('La fecha de nacimiento es obligatoria');
-      return false;
-    }
-    if (!formData.telefono_propietario.trim()) {
-      toast.error('El teléfono es obligatorio');
-      return false;
-    }
-    if (!formData.correo_electronico_propietario.trim()) {
-      toast.error('El correo electrónico es obligatorio');
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.correo_electronico_propietario)) {
-      toast.error('El formato del correo electrónico no es válido');
+    // ✨ Usar la nueva función de validación
+    if (!validateAllFields()) {
+      toast.error('Por favor corrige los errores en el formulario');
       return false;
     }
 
@@ -194,11 +251,21 @@ const PropietarioForm = () => {
                   value={formData.ci_propietario}
                   onChange={handleChange}
                   disabled={isEditMode}
-                  className={`w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
-                    isEditMode ? 'opacity-60 cursor-not-allowed' : ''
+                  maxLength={MAX_LENGTH.CI}
+                  className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                    isEditMode ? 'opacity-60 cursor-not-allowed border-gray-700 focus:ring-green-500/50 focus:border-green-500/50' : 
+                    errors.ci_propietario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
                   }`}
                   placeholder="Ej: 12345678"
                 />
+                {!isEditMode && errors.ci_propietario && (
+                  <p className="text-red-400 text-xs mt-1">⚠️ {errors.ci_propietario}</p>
+                )}
+                {!isEditMode && !errors.ci_propietario && (
+                  <p className="text-gray-500 text-xs mt-1">
+                    {formData.ci_propietario.length}/{MAX_LENGTH.CI} caracteres
+                  </p>
+                )}
                 {isEditMode && (
                   <p className="text-sm text-gray-500 mt-1">La CI no se puede modificar</p>
                 )}
@@ -216,9 +283,19 @@ const PropietarioForm = () => {
                     name="nombres_completo_propietario"
                     value={formData.nombres_completo_propietario}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    maxLength={MAX_LENGTH.NOMBRES}
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.nombres_completo_propietario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="Ej: Juan Carlos"
                   />
+                  {errors.nombres_completo_propietario ? (
+                    <p className="text-red-400 text-xs mt-1">⚠️ {errors.nombres_completo_propietario}</p>
+                  ) : (
+                    <p className="text-gray-500 text-xs mt-1">
+                      {formData.nombres_completo_propietario.length}/{MAX_LENGTH.NOMBRES} caracteres
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -231,9 +308,19 @@ const PropietarioForm = () => {
                     name="apellidos_completo_propietario"
                     value={formData.apellidos_completo_propietario}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                    maxLength={MAX_LENGTH.APELLIDOS}
+                    className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                      errors.apellidos_completo_propietario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                    }`}
                     placeholder="Ej: Pérez González"
                   />
+                  {errors.apellidos_completo_propietario ? (
+                    <p className="text-red-400 text-xs mt-1">⚠️ {errors.apellidos_completo_propietario}</p>
+                  ) : (
+                    <p className="text-gray-500 text-xs mt-1">
+                      {formData.apellidos_completo_propietario.length}/{MAX_LENGTH.APELLIDOS} caracteres
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -251,8 +338,13 @@ const PropietarioForm = () => {
                   name="fecha_nacimiento_propietario"
                   value={formData.fecha_nacimiento_propietario}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 focus:ring-2 transition-all ${
+                    errors.fecha_nacimiento_propietario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                  }`}
                 />
+                {errors.fecha_nacimiento_propietario && (
+                  <p className="text-red-400 text-xs mt-1">⚠️ {errors.fecha_nacimiento_propietario}</p>
+                )}
               </div>
             </div>
           </div>
@@ -276,9 +368,19 @@ const PropietarioForm = () => {
                   name="telefono_propietario"
                   value={formData.telefono_propietario}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  maxLength={MAX_LENGTH.TELEFONO}
+                  className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                    errors.telefono_propietario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                  }`}
                   placeholder="Ej: 099123456"
                 />
+                {errors.telefono_propietario ? (
+                  <p className="text-red-400 text-xs mt-1">⚠️ {errors.telefono_propietario}</p>
+                ) : (
+                  <p className="text-gray-500 text-xs mt-1">
+                    {formData.telefono_propietario.length}/{MAX_LENGTH.TELEFONO} caracteres
+                  </p>
+                )}
               </div>
 
               {/* Correo Electrónico */}
@@ -295,9 +397,19 @@ const PropietarioForm = () => {
                   name="correo_electronico_propietario"
                   value={formData.correo_electronico_propietario}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  maxLength={MAX_LENGTH.EMAIL}
+                  className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                    errors.correo_electronico_propietario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                  }`}
                   placeholder="Ej: propietario@example.com"
                 />
+                {errors.correo_electronico_propietario ? (
+                  <p className="text-red-400 text-xs mt-1">⚠️ {errors.correo_electronico_propietario}</p>
+                ) : (
+                  <p className="text-gray-500 text-xs mt-1">
+                    {formData.correo_electronico_propietario.length}/{MAX_LENGTH.EMAIL} caracteres
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -99,6 +99,27 @@ export default function NuevaPublicacionPage() {
     );
   };
 
+  const handleDeleteImage = async (idImagen, descripcion) => {
+    const nombreImagen = descripcion || 'esta imagen';
+    if (!window.confirm(`¿Estás seguro de eliminar "${nombreImagen}" de la base de datos?\n\nEsta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      toast.loading('Eliminando imagen...', { id: 'delete' });
+      
+      await imagenesService.eliminarImagen(idImagen);
+      
+      // Actualizar estado local eliminando la imagen
+      setImagenes(prev => prev.filter(img => img.id_imagen !== idImagen));
+      
+      toast.success('Imagen eliminada exitosamente', { id: 'delete' });
+    } catch (error) {
+      console.error('Error al eliminar imagen:', error);
+      toast.error('Error al eliminar la imagen', { id: 'delete' });
+    }
+  };
+
   const handleUploadImages = async (files) => {
     if (!propiedadSeleccionada) {
       toast.error('No hay propiedad seleccionada');
@@ -248,6 +269,7 @@ export default function NuevaPublicacionPage() {
             onToggle={handleImagenToggle}
             onMarcarPortada={handleMarcarPortada}
             onUploadImages={handleUploadImages}
+            onDeleteImage={handleDeleteImage}
             propiedadId={propiedadSeleccionada?.id_propiedad}
             onNext={() => setPaso(4)}
             onBack={() => setPaso(2)}

@@ -20,13 +20,14 @@ const currentPath = Astro.url.pathname;
         <a href="/propiedades" class:list={['nav-link', { active: currentPath.startsWith('/propiedades') }]}>Catálogo</a>
         <a href="/mapa" class:list={['nav-link', { active: currentPath === '/mapa' }]}>Mapa</a>
         
-        <div class="nav-dropdown">
+        <!-- <div class="nav-dropdown">
           <button class="nav-link dropdown-toggle">
             Zonas
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
+          
           <div class="dropdown-menu">
             {zonas.map(zona => (
               <a href={`/propiedades?zona=${encodeURIComponent(zona)}`} class="dropdown-item">
@@ -34,7 +35,8 @@ const currentPath = Astro.url.pathname;
               </a>
             ))}
           </div>
-        </div>
+        </div> -->
+        
       </div>
 
       <div class="nav-actions">

@@ -15,6 +15,18 @@ import {
 import BackButton from '../../components/shared/BackButton';
 import FormCard from '../../components/shared/FormCard';
 
+// ✨ Importar validaciones
+import {
+  validateCI,
+  validateText,
+  validatePhone,
+  validateEmail,
+  validateDecimal,
+  MAX_LENGTH,
+  NUMERIC_LIMITS,
+  sanitizeString
+} from '../../utils/validations';
+
 const ClienteForm = () => {
   const navigate = useNavigate();
   const { ci } = useParams();
@@ -31,6 +43,9 @@ const ClienteForm = () => {
     presupuesto_max_cliente: '',
     origen_cliente: '',
   });
+
+  // ✨ Estado para errores de validación
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (!isEditing) return;
@@ -82,25 +97,88 @@ const ClienteForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Sanitizar el valor
+    const sanitizedValue = sanitizeString(value);
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: sanitizedValue,
     }));
+
+    // ✨ Validar el campo en tiempo real
+    validateField(name, sanitizedValue);
+  };
+
+  // ✨ Validar campo individual
+  const validateField = (fieldName, value) => {
+    let error = null;
+
+    switch (fieldName) {
+      case 'ci_cliente':
+        error = validateCI(value, true);
+        break;
+      case 'nombres_completo_cliente':
+        error = validateText(value, 'Nombres', MAX_LENGTH.NOMBRES, true);
+        break;
+      case 'apellidos_completo_cliente':
+        error = validateText(value, 'Apellidos', MAX_LENGTH.APELLIDOS, true);
+        break;
+      case 'telefono_cliente':
+        error = validatePhone(value, false);
+        break;
+      case 'correo_electronico_cliente':
+        error = validateEmail(value, false);
+        break;
+      case 'preferencia_zona_cliente':
+        error = validateText(value, 'Zona preferida', MAX_LENGTH.PREFERENCIA_ZONA, false);
+        break;
+      case 'presupuesto_max_cliente':
+        error = validateDecimal(value, 'Presupuesto', NUMERIC_LIMITS.PRECIO, false);
+        break;
+      case 'origen_cliente':
+        error = validateText(value, 'Origen', MAX_LENGTH.ORIGEN, false);
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: error,
+    }));
+
+    return error;
+  };
+
+  // ✨ Validar todos los campos
+  const validateAllFields = () => {
+    const newErrors = {};
+    
+    newErrors.ci_cliente = validateCI(formData.ci_cliente, true);
+    newErrors.nombres_completo_cliente = validateText(formData.nombres_completo_cliente, 'Nombres', MAX_LENGTH.NOMBRES, true);
+    newErrors.apellidos_completo_cliente = validateText(formData.apellidos_completo_cliente, 'Apellidos', MAX_LENGTH.APELLIDOS, true);
+    newErrors.telefono_cliente = validatePhone(formData.telefono_cliente, false);
+    newErrors.correo_electronico_cliente = validateEmail(formData.correo_electronico_cliente, false);
+    newErrors.preferencia_zona_cliente = validateText(formData.preferencia_zona_cliente, 'Zona preferida', MAX_LENGTH.PREFERENCIA_ZONA, false);
+    newErrors.presupuesto_max_cliente = validateDecimal(formData.presupuesto_max_cliente, 'Presupuesto', NUMERIC_LIMITS.PRECIO, false);
+    newErrors.origen_cliente = validateText(formData.origen_cliente, 'Origen', MAX_LENGTH.ORIGEN, false);
+
+    // Filtrar errores nulos
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, error]) => error !== null)
+    );
+
+    setErrors(filteredErrors);
+    return Object.keys(filteredErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.ci_cliente.trim()) {
-      toast.error('El CI es obligatorio');
-      return;
-    }
-    if (!formData.nombres_completo_cliente.trim()) {
-      toast.error('El nombre es obligatorio');
-      return;
-    }
-    if (!formData.apellidos_completo_cliente.trim()) {
-      toast.error('Los apellidos son obligatorios');
+    // ✨ Validar todos los campos
+    if (!validateAllFields()) {
+      toast.error('Por favor corrige los errores en el formulario');
       return;
     }
 
@@ -183,15 +261,26 @@ const ClienteForm = () => {
                 value={formData.ci_cliente}
                 onChange={handleChange}
                 disabled={isEditing}
-                className={`w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
+                maxLength={MAX_LENGTH.CI}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.ci_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
                   isEditing ? 'opacity-60 cursor-not-allowed' : ''
                 }`}
-                placeholder="Ej: 12345678"
+                placeholder="Ej: 12345678 (solo números)"
                 required
               />
-              {isEditing && (
+              {errors.ci_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.ci_cliente}</p>
+              )}
+              {isEditing && !errors.ci_cliente && (
                 <p className="text-xs text-gray-500 mt-1">
                   El CI no se puede modificar
+                </p>
+              )}
+              {!isEditing && !errors.ci_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.ci_cliente.length}/{MAX_LENGTH.CI} caracteres
                 </p>
               )}
             </div>
@@ -209,9 +298,20 @@ const ClienteForm = () => {
                 name="telefono_cliente"
                 value={formData.telefono_cliente}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-                placeholder="Ej: 70123456"
+                maxLength={MAX_LENGTH.TELEFONO}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.telefono_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
+                placeholder="Ej: 70123456 (solo números)"
               />
+              {errors.telefono_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.telefono_cliente}</p>
+              )}
+              {!errors.telefono_cliente && formData.telefono_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.telefono_cliente.length}/{MAX_LENGTH.TELEFONO} caracteres
+                </p>
+              )}
             </div>
 
             {/* Nombres */}
@@ -224,10 +324,21 @@ const ClienteForm = () => {
                 name="nombres_completo_cliente"
                 value={formData.nombres_completo_cliente}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.NOMBRES}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.nombres_completo_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                 placeholder="Ej: Juan Carlos"
                 required
               />
+              {errors.nombres_completo_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.nombres_completo_cliente}</p>
+              )}
+              {!errors.nombres_completo_cliente && formData.nombres_completo_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.nombres_completo_cliente.length}/{MAX_LENGTH.NOMBRES} caracteres
+                </p>
+              )}
             </div>
 
             {/* Apellidos */}
@@ -240,10 +351,21 @@ const ClienteForm = () => {
                 name="apellidos_completo_cliente"
                 value={formData.apellidos_completo_cliente}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.APELLIDOS}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.apellidos_completo_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                 placeholder="Ej: Pérez García"
                 required
               />
+              {errors.apellidos_completo_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.apellidos_completo_cliente}</p>
+              )}
+              {!errors.apellidos_completo_cliente && formData.apellidos_completo_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.apellidos_completo_cliente.length}/{MAX_LENGTH.APELLIDOS} caracteres
+                </p>
+              )}
             </div>
 
             {/* Correo Electrónico */}
@@ -259,9 +381,20 @@ const ClienteForm = () => {
                 name="correo_electronico_cliente"
                 value={formData.correo_electronico_cliente}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.EMAIL}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.correo_electronico_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                 placeholder="Ej: juan.perez@email.com"
               />
+              {errors.correo_electronico_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.correo_electronico_cliente}</p>
+              )}
+              {!errors.correo_electronico_cliente && formData.correo_electronico_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.correo_electronico_cliente.length}/{MAX_LENGTH.EMAIL} caracteres
+                </p>
+              )}
             </div>
           </div>
         </FormCard>
@@ -284,9 +417,20 @@ const ClienteForm = () => {
                 name="preferencia_zona_cliente"
                 value={formData.preferencia_zona_cliente}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.PREFERENCIA_ZONA}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.preferencia_zona_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                 placeholder="Ej: Zona Sur, Centro"
               />
+              {errors.preferencia_zona_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.preferencia_zona_cliente}</p>
+              )}
+              {!errors.preferencia_zona_cliente && formData.preferencia_zona_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.preferencia_zona_cliente.length}/{MAX_LENGTH.PREFERENCIA_ZONA} caracteres
+                </p>
+              )}
             </div>
 
             {/* Presupuesto */}
@@ -303,10 +447,21 @@ const ClienteForm = () => {
                 value={formData.presupuesto_max_cliente}
                 onChange={handleChange}
                 step="0.01"
-                min="0"
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                min={NUMERIC_LIMITS.PRECIO.min}
+                max={NUMERIC_LIMITS.PRECIO.max}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.presupuesto_max_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                 placeholder="Ej: 150000"
               />
+              {errors.presupuesto_max_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.presupuesto_max_cliente}</p>
+              )}
+              {!errors.presupuesto_max_cliente && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Monto entre {NUMERIC_LIMITS.PRECIO.min} y {NUMERIC_LIMITS.PRECIO.max.toLocaleString()} Bs.
+                </p>
+              )}
             </div>
 
             {/* Origen */}
@@ -321,7 +476,9 @@ const ClienteForm = () => {
                 name="origen_cliente"
                 value={formData.origen_cliente}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border ${
+                  errors.origen_cliente ? 'border-red-500' : 'border-gray-700'
+                } rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
               >
                 <option value="">Seleccionar...</option>
                 <option value="Referido">Referido</option>
@@ -331,6 +488,9 @@ const ClienteForm = () => {
                 <option value="Oficina">Oficina</option>
                 <option value="Otro">Otro</option>
               </select>
+              {errors.origen_cliente && (
+                <p className="text-xs text-red-400 mt-1">{errors.origen_cliente}</p>
+              )}
             </div>
           </div>
         </FormCard>

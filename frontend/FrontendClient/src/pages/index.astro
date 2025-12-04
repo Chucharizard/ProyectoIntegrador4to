@@ -3,9 +3,55 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import PropiedadCard from '../components/PropiedadCard.astro';
-import { obtenerPropiedadesDestacadas, zonas } from '../data/propiedades';
+import { getPropiedadesPublicadas, generarSlug, getAmenities, getImagenUrl } from '../services/api';
 
-const propiedadesDestacadas = obtenerPropiedadesDestacadas();
+// Obtener propiedades publicadas de la API (máximo 6 para destacadas)
+const todasPropiedades = await getPropiedadesPublicadas();
+
+// Transformar al formato esperado por los componentes
+const propiedadesDestacadas = todasPropiedades
+  .slice(0, 6)
+  .map(prop => {
+    const detalles = prop.detalles || prop.detalle || {};
+    const direccion = prop.direccion || {};
+    const imagenes = prop.imagenes || [];
+    
+    return {
+      id: String(prop.id_propiedad || prop.id || ''),
+      slug: generarSlug({ 
+        id: prop.id_propiedad || prop.id,
+        titulo: prop.titulo_propiedad || prop.titulo,
+        slug: prop.slug 
+      } as any),
+      estado: 'activa',
+      titulo: prop.titulo_propiedad || prop.titulo || 'Sin título',
+      descripcion: prop.descripcion_propiedad || prop.descripcion || 'Sin descripción',
+      descripcionBreve: (prop.descripcion_propiedad || prop.descripcion || '').substring(0, 100) + '...',
+      tipoOperacion: (prop.tipo_operacion_propiedad || prop.tipo_operacion || '').toLowerCase().includes('venta') ? 'venta' : 'alquiler',
+      tipoPropiedad: (prop.tipo_propiedad || 'propiedad').toLowerCase(),
+      zona: direccion.zona_direccion || direccion.barrio_direccion || direccion.zona || direccion.barrio || 'Sin especificar',
+      ciudad: direccion.ciudad_direccion || direccion.ciudad || 'Sin especificar',
+      direccionResumida: direccion ? `${direccion.calle_direccion || direccion.calle || 'Sin calle'}, ${direccion.zona_direccion || direccion.barrio_direccion || direccion.zona || direccion.barrio || ''}` : 'Sin dirección',
+      coordenadas: (direccion.latitud_direccion || direccion.latitud) && (direccion.longitud_direccion || direccion.longitud) ? {
+        lat: direccion.latitud_direccion || direccion.latitud,
+        lng: direccion.longitud_direccion || direccion.longitud
+      } : undefined,
+      precio: prop.precio_publicado_propiedad || prop.precio_propiedad || prop.precio || 0,
+      superficieTotal: prop.superficie_propiedad || prop.superficie_total_propiedad || prop.superficie_total || 0,
+      superficieConstruida: prop.superficie_construida_propiedad || prop.superficie_construida || 0,
+      dormitorios: detalles.num_dormitorios || 0,
+      banos: detalles.num_banos || 0,
+      amenities: getAmenities(detalles),
+      imagenPortada: getImagenUrl(imagenes.find(img => img.es_portada_imagen || img.es_portada)?.url_imagen || imagenes[0]?.url_imagen),
+      galeria: imagenes.map(img => getImagenUrl(img.url_imagen || img.url)),
+      destacada: true,
+      fechaPublicacion: prop.fecha_publicacion_propiedad || prop.fecha_creacion_propiedad || prop.fecha_creacion || new Date().toISOString()
+    };
+  });
+
+// Obtener zonas únicas de las propiedades
+const zonasUnicas = [...new Set(todasPropiedades.map(p => (p.direccion?.zona_direccion || p.direccion?.barrio_direccion || p.direccion?.zona || p.direccion?.barrio)).filter(Boolean))];
+const zonas = zonasUnicas.slice(0, 6); // Máximo 6 zonas para mostrar
 ---
 
 <Layout title="Inicio" description="Encuentra tu propiedad ideal. Casas, apartamentos, terrenos y más en las mejores zonas de la ciudad.">

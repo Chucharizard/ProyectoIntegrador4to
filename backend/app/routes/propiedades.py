@@ -203,10 +203,44 @@ async def actualizar_propiedad(
         if not existing.data:
             raise HTTPException(status_code=404, detail="Propiedad no encontrada")
         
-        update_data = propiedad.model_dump(exclude_unset=True)
+        propiedad_existente = existing.data[0]
+        update_data = propiedad.model_dump(exclude_unset=True, exclude={"direccion"})
         
-        if not update_data:
+        if not update_data and not propiedad.direccion:
             raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
+        
+        # 🔄 ACTUALIZAR DIRECCIÓN si viene en el request
+        if propiedad.direccion:
+            id_direccion = propiedad_existente.get("id_direccion")
+            
+            if id_direccion:
+                # Actualizar dirección existente
+                direccion_data = propiedad.direccion.model_dump()
+                
+                # Convertir Decimal a float
+                if direccion_data.get("latitud_direccion") is not None:
+                    direccion_data["latitud_direccion"] = float(direccion_data["latitud_direccion"])
+                if direccion_data.get("longitud_direccion") is not None:
+                    direccion_data["longitud_direccion"] = float(direccion_data["longitud_direccion"])
+                
+                result_dir = supabase.table("direccion").update(direccion_data).eq("id_direccion", id_direccion).execute()
+                if not result_dir.data:
+                    raise HTTPException(status_code=500, detail="Error al actualizar la dirección")
+            else:
+                # Crear nueva dirección si no existe
+                direccion_data = propiedad.direccion.model_dump()
+                
+                # Convertir Decimal a float
+                if direccion_data.get("latitud_direccion") is not None:
+                    direccion_data["latitud_direccion"] = float(direccion_data["latitud_direccion"])
+                if direccion_data.get("longitud_direccion") is not None:
+                    direccion_data["longitud_direccion"] = float(direccion_data["longitud_direccion"])
+                
+                result_dir = supabase.table("direccion").insert(direccion_data).execute()
+                if not result_dir.data:
+                    raise HTTPException(status_code=500, detail="Error al crear la dirección")
+                
+                update_data["id_direccion"] = result_dir.data[0]["id_direccion"]
         
         # Convertir Decimales a float
         if "precio_publicado_propiedad" in update_data and update_data["precio_publicado_propiedad"] is not None:
@@ -224,16 +258,22 @@ async def actualizar_propiedad(
         if "fecha_cierre_propiedad" in update_data and update_data["fecha_cierre_propiedad"]:
             update_data["fecha_cierre_propiedad"] = update_data["fecha_cierre_propiedad"].isoformat()
         
-        result = supabase.table("propiedad").update(update_data).eq("id_propiedad", id_propiedad).execute()
-        
-        if not result.data:
-            raise HTTPException(status_code=500, detail="Error al actualizar la propiedad")
+        # Actualizar propiedad solo si hay datos
+        if update_data:
+            result = supabase.table("propiedad").update(update_data).eq("id_propiedad", id_propiedad).execute()
+            
+            if not result.data:
+                raise HTTPException(status_code=500, detail="Error al actualizar la propiedad")
+            
+            propiedad_actualizada = result.data[0]
+        else:
+            # Si solo se actualizó la dirección, obtener datos actuales
+            propiedad_actualizada = supabase.table("propiedad").select("*").eq("id_propiedad", id_propiedad).execute().data[0]
         
         # ✅ Invalidar caché
         clear_propiedades_cache()
         
-        propiedad_actualizada = result.data[0]
-        
+        # Incluir dirección en respuesta
         direccion = supabase.table("direccion").select("*").eq("id_direccion", propiedad_actualizada["id_direccion"]).execute()
         if direccion.data:
             propiedad_actualizada["direccion"] = direccion.data[0]

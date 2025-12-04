@@ -2,6 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import pagoService from '../../services/pagoService';
 import contratoService from '../../services/contratoService';
+import PageHeader from '../../components/shared/PageHeader';
+import StatsCard from '../../components/shared/StatsCard';
+import { 
+  BanknotesIcon, 
+  CheckCircleIcon, 
+  ClockIcon, 
+  ExclamationTriangleIcon 
+} from '@heroicons/react/24/outline';
 
 function PagosList() {
   const [pagos, setPagos] = useState([]);
@@ -173,12 +181,12 @@ function PagosList() {
 
   const getEstadoColor = (estado) => {
     const colores = {
-      'Pendiente': 'bg-yellow-100 text-yellow-700 border border-yellow-300',
-      'Pagado': 'bg-green-100 text-green-700 border border-green-300',
-      'Atrasado': 'bg-red-100 text-red-700 border border-red-300',
-      'Cancelado': 'bg-gray-100 text-gray-700 border border-gray-300'
+      'Pendiente': 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+      'Pagado': 'bg-green-500/20 text-green-300 border border-green-500/30',
+      'Atrasado': 'bg-red-500/20 text-red-300 border border-red-500/30',
+      'Cancelado': 'bg-gray-500/20 text-gray-300 border border-gray-600'
     };
-    return colores[estado] || 'bg-gray-100 text-gray-700';
+    return colores[estado] || 'bg-gray-500/20 text-gray-300';
   };
 
   const formatCurrency = (amount) => {
@@ -207,112 +215,68 @@ function PagosList() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pagos</h1>
-          <p className="text-gray-600 mt-1">
-            Gestión de pagos de contratos • {pagination.total} total
-          </p>
-        </div>
-        <Link
-          to="/pagos/nuevo"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 whitespace-nowrap"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Registrar Pago
-        </Link>
-      </div>
+      <PageHeader
+        title="Pagos"
+        description={`Gestión de pagos de contratos • ${pagination.total} total`}
+        buttonText="Registrar Pago"
+        onButtonClick={() => navigate('/pagos/nuevo')}
+      />
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-gray-100">
           {error}
         </div>
       )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Total Pagos</p>
-              <p className="text-3xl font-bold mt-2">{stats.total}</p>
-            </div>
-            <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm font-medium">Pagados</p>
-              <p className="text-3xl font-bold mt-2">{stats.pagados}</p>
-              <p className="text-green-100 text-xs mt-1">{formatCurrency(stats.totalMontoPagado)}</p>
-            </div>
-            <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-yellow-100 text-sm font-medium">Pendientes</p>
-              <p className="text-3xl font-bold mt-2">{stats.pendientes}</p>
-              <p className="text-yellow-100 text-xs mt-1">{formatCurrency(stats.totalMontoPendiente)}</p>
-            </div>
-            <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-100 text-sm font-medium">Atrasados</p>
-              <p className="text-3xl font-bold mt-2">{stats.atrasados}</p>
-            </div>
-            <div className="bg-white bg-opacity-20 rounded-lg p-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          label="Total Pagos"
+          value={stats.total}
+          icon={BanknotesIcon}
+          color="blue"
+        />
+        <StatsCard
+          label="Pagados"
+          value={`${stats.pagados} • ${formatCurrency(stats.totalMontoPagado)}`}
+          icon={CheckCircleIcon}
+          color="green"
+        />
+        <StatsCard
+          label="Pendientes"
+          value={`${stats.pendientes} • ${formatCurrency(stats.totalMontoPendiente)}`}
+          icon={ClockIcon}
+          color="purple"
+        />
+        <StatsCard
+          label="Atrasados"
+          value={stats.atrasados}
+          icon={ExclamationTriangleIcon}
+          color="red"
+        />
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-700/50">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Buscar</label>
             <input
               type="text"
               placeholder="Buscar por monto, cuota..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Estado</label>
             <select
               value={estadoFilter}
               onChange={(e) => setEstadoFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todos los estados</option>
               <option value="Pendiente">Pendiente</option>
@@ -323,11 +287,11 @@ function PagosList() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Contrato</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Contrato</label>
             <select
               value={contratoFilter}
               onChange={(e) => setContratoFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todos los contratos</option>
               {Object.values(contratos).map(contrato => (
@@ -341,40 +305,40 @@ function PagosList() {
       </div>
 
       {/* Tabla de Pagos */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-gray-700/50">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-900/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Contrato
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Cuota
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Monto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Fecha Pago
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-700">
               {filteredPagos.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
+                    <svg className="mx-auto h-12 w-12 text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    <p className="text-lg font-medium">No hay pagos registrados</p>
-                    <p className="text-sm mt-1">Comienza registrando el primer pago</p>
+                    <p className="text-lg font-medium text-gray-300">No hay pagos registrados</p>
+                    <p className="text-sm mt-1 text-gray-400">Comienza registrando el primer pago</p>
                   </td>
                 </tr>
               ) : (
@@ -382,27 +346,27 @@ function PagosList() {
                   const contrato = contratos[pago.id_contrato_operacion];
                   
                   return (
-                    <tr key={pago.id_pago} className="hover:bg-gray-50 transition-colors">
+                    <tr key={pago.id_pago} className="hover:bg-gray-900/50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
                           {contrato?.tipo_operacion_contrato || 'N/A'}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-300">
                           Total: {formatCurrency(contrato?.precio_cierre_contrato)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
                           {pago.numero_cuota_pago ? `Cuota ${pago.numero_cuota_pago}` : 'Pago único'}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
                           {formatCurrency(pago.monto_pago)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
                           {formatDate(pago.fecha_pago)}
                         </div>
                       </td>
@@ -441,24 +405,24 @@ function PagosList() {
 
         {/* ✅ NUEVO: Paginación */}
         {pagination.totalPages > 1 && (
-          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+          <div className="bg-gray-800/50 px-6 py-4 border-t border-gray-700/50">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Mostrando página <span className="font-semibold">{pagination.page}</span> de{' '}
-                <span className="font-semibold">{pagination.totalPages}</span> ({pagination.total} total)
+              <div className="text-sm text-gray-300">
+                Mostrando página <span className="font-semibold text-green-400">{pagination.page}</span> de{' '}
+                <span className="font-semibold text-green-400">{pagination.totalPages}</span> ({pagination.total} total)
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={!pagination.hasPrev}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 hover:bg-gray-600/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={!pagination.hasNext}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 hover:bg-gray-600/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Siguiente
                 </button>

@@ -84,13 +84,30 @@ export default function EditarPublicacionPage() {
     );
   };
 
-  const handleMarcarPortada = (idImagen) => {
-    setImagenes(prev =>
-      prev.map(img => ({
+  const handleMarcarPortada = async (idImagen) => {
+    try {
+      // Primero desmarcar todas las demás imágenes
+      const imagenesActualizadas = imagenes.map(img => ({
         ...img,
         es_portada_imagen: img.id_imagen === idImagen
-      }))
-    );
+      }));
+      
+      // Actualizar estado local primero para feedback inmediato
+      setImagenes(imagenesActualizadas);
+      
+      // Actualizar en backend: desmarcar todas excepto la nueva portada
+      const promises = imagenesActualizadas.map(img => 
+        imagenesService.togglePortada(img.id_imagen, img.es_portada_imagen)
+      );
+      
+      await Promise.all(promises);
+      toast.success('Portada actualizada', { id: 'portada' });
+    } catch (error) {
+      console.error('Error al cambiar portada:', error);
+      toast.error('Error al cambiar la portada');
+      // Recargar imágenes para restaurar estado correcto
+      cargarImagenes();
+    }
   };
 
   const handleUploadImages = async (files) => {
@@ -114,6 +131,27 @@ export default function EditarPublicacionPage() {
       console.error('Error al subir imágenes:', error);
       toast.error('Error al subir imágenes', { id: 'upload' });
       throw error;
+    }
+  };
+
+  const handleDeleteImage = async (idImagen, descripcion) => {
+    const nombreImagen = descripcion || 'esta imagen';
+    if (!window.confirm(`¿Estás seguro de eliminar "${nombreImagen}" de la base de datos?\n\nEsta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      toast.loading('Eliminando imagen...', { id: 'delete' });
+      
+      await imagenesService.eliminarImagen(idImagen);
+      
+      // Actualizar estado local eliminando la imagen
+      setImagenes(prev => prev.filter(img => img.id_imagen !== idImagen));
+      
+      toast.success('Imagen eliminada exitosamente', { id: 'delete' });
+    } catch (error) {
+      console.error('Error al eliminar imagen:', error);
+      toast.error('Error al eliminar la imagen', { id: 'delete' });
     }
   };
 
@@ -242,6 +280,7 @@ export default function EditarPublicacionPage() {
               onToggle={handleImagenToggle}
               onMarcarPortada={handleMarcarPortada}
               onUploadImages={handleUploadImages}
+              onDeleteImage={handleDeleteImage}
               propiedadId={id}
               onNext={() => setPaso(3)}
               onBack={() => setPaso(1)}

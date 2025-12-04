@@ -186,7 +186,7 @@ const PropiedadesList = () => {
     {
       header: 'Código',
       render: (row) => (
-        <span className="font-medium text-gray-200">
+        <span className="font-medium text-gray-200 text-sm">
           {row.codigo_publico_propiedad || 'Sin código'}
         </span>
       )
@@ -194,10 +194,10 @@ const PropiedadesList = () => {
     {
       header: 'Título',
       render: (row) => (
-        <div>
-          <div className="font-medium text-gray-200">{row.titulo_propiedad}</div>
+        <div className="max-w-[200px]">
+          <div className="font-medium text-gray-200 text-sm truncate">{row.titulo_propiedad}</div>
           {row.descripcion_propiedad && (
-            <div className="text-gray-400 text-xs truncate max-w-xs">
+            <div className="text-gray-400 text-xs truncate">
               {row.descripcion_propiedad}
             </div>
           )}
@@ -207,7 +207,9 @@ const PropiedadesList = () => {
     {
       header: 'Propietario',
       render: (row) => (
-        <span className="text-gray-300">{getPropietarioNombre(row.ci_propietario)}</span>
+        <span className="text-gray-300 text-sm truncate block max-w-[150px]">
+          {getPropietarioNombre(row.ci_propietario)}
+        </span>
       )
     },
     {

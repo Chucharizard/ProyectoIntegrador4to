@@ -173,12 +173,11 @@ async def despublicar_propiedad(
 
 
 @router.get("/propiedades/publicadas/lista", response_model=List[dict])
-async def listar_propiedades_publicadas(
-    current_user = Depends(get_current_active_user)
-):
+async def listar_propiedades_publicadas():
     """
     Lista todas las propiedades publicadas con sus detalles.
     
+    Endpoint PÚBLICO - No requiere autenticación (para sitio web de clientes).
     Retorna propiedad + detalles + dirección en un solo objeto.
     """
     supabase = get_supabase_client()
@@ -212,3 +211,61 @@ async def listar_propiedades_publicadas(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar publicadas: {str(e)}")
+
+
+@router.get("/propiedades/publicadas/{id_propiedad}", response_model=dict)
+async def obtener_propiedad_publicada(id_propiedad: str):
+    """
+    Obtiene una propiedad publicada específica por su ID.
+    
+    Endpoint PÚBLICO - No requiere autenticación (para sitio web de clientes).
+    Retorna propiedad + detalles + dirección + imágenes.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        # Obtener propiedad publicada
+        propiedad = supabase.table("propiedad")\
+            .select("*")\
+            .eq("id_propiedad", id_propiedad)\
+            .eq("estado_propiedad", "Publicada")\
+            .execute()
+        
+        if not propiedad.data:
+            raise HTTPException(status_code=404, detail="Propiedad no encontrada o no está publicada")
+        
+        prop = propiedad.data[0]
+        
+        # Obtener detalles
+        detalles = supabase.table("detallepropiedad")\
+            .select("*")\
+            .eq("id_propiedad", prop["id_propiedad"])\
+            .execute()
+        
+        # Obtener dirección
+        direccion = supabase.table("direccion")\
+            .select("*")\
+            .eq("id_direccion", prop["id_direccion"])\
+            .execute()
+        
+        # Obtener imágenes
+        imagenes = supabase.table("imagenpropiedad")\
+            .select("*")\
+            .eq("id_propiedad", prop["id_propiedad"])\
+            .order("orden_imagen")\
+            .execute()
+        
+        # Combinar todo
+        prop_completa = {
+            **prop,
+            "detalles": detalles.data[0] if detalles.data else None,
+            "direccion": direccion.data[0] if direccion.data else None,
+            "imagenes": imagenes.data if imagenes.data else []
+        }
+        
+        return prop_completa
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener propiedad: {str(e)}")

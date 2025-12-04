@@ -11,6 +11,15 @@ import usuarioService from '../../services/usuarioService';
 import BackButton from '../../components/shared/BackButton';
 import FormCard from '../../components/shared/FormCard';
 
+// ✨ Importar validaciones
+import {
+  validateText,
+  validateDate,
+  validateInteger,
+  MAX_LENGTH,
+  sanitizeString
+} from '../../utils/validations';
+
 const CitaForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -101,52 +110,91 @@ const CitaForm = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    
+    // Sanitizar el valor para campos de texto
+    const sanitizedValue = type === 'text' || type === 'textarea' 
+      ? sanitizeString(value) 
+      : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: sanitizedValue
     }));
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+
+    // ✨ Validar el campo en tiempo real (excepto select)
+    if (type !== 'select-one' && type !== 'number') {
+      validateField(name, sanitizedValue);
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  // ✨ Validar campo individual
+  const validateField = (fieldName, value) => {
+    let error = null;
 
+    switch (fieldName) {
+      case 'fecha_visita_cita':
+        error = validateDate(value, 'Fecha de visita', true, { notPast: !isEditMode });
+        break;
+      case 'lugar_encuentro_cita':
+        error = validateText(value, 'Lugar de encuentro', MAX_LENGTH.LUGAR_ENCUENTRO, true);
+        break;
+      case 'nota_cita':
+        error = validateText(value, 'Nota', MAX_LENGTH.NOTA_CITA, false);
+        break;
+      case 'recordatorio_minutos_cita':
+        error = validateInteger(value, 'Recordatorio', false, 0, 1440);
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: error,
+    }));
+
+    return error;
+  };
+
+  // ✨ Validar todos los campos
+  const validateAllFields = () => {
+    const newErrors = {};
+    
+    // Validar selects
     if (!formData.id_propiedad) {
       newErrors.id_propiedad = 'La propiedad es obligatoria';
     }
-
     if (!formData.ci_cliente) {
       newErrors.ci_cliente = 'El cliente es obligatorio';
     }
-
-    if (!formData.fecha_visita_cita) {
-      newErrors.fecha_visita_cita = 'La fecha y hora son obligatorias';
-    } else {
-      if (!isEditMode) {
-        const fechaSeleccionada = new Date(formData.fecha_visita_cita);
-        const ahora = new Date();
-        if (fechaSeleccionada < ahora) {
-          newErrors.fecha_visita_cita = 'La fecha no puede ser en el pasado';
-        }
-      }
-    }
-
-    if (!formData.lugar_encuentro_cita.trim()) {
-      newErrors.lugar_encuentro_cita = 'El lugar de encuentro es obligatorio';
-    }
-
     if (!formData.estado_cita) {
       newErrors.estado_cita = 'El estado es obligatorio';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // Validar campos con funciones
+    newErrors.fecha_visita_cita = validateDate(formData.fecha_visita_cita, 'Fecha de visita', true, { notPast: !isEditMode });
+    newErrors.lugar_encuentro_cita = validateText(formData.lugar_encuentro_cita, 'Lugar de encuentro', MAX_LENGTH.LUGAR_ENCUENTRO, true);
+    newErrors.nota_cita = validateText(formData.nota_cita, 'Nota', MAX_LENGTH.NOTA_CITA, false);
+    newErrors.recordatorio_minutos_cita = validateInteger(formData.recordatorio_minutos_cita, 'Recordatorio', 0, 1440, false);
+
+    // Filtrar errores nulos
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, error]) => error !== null && error !== undefined)
+    );
+
+    setErrors(filteredErrors);
+    return Object.keys(filteredErrors).length === 0;
+  };
+
+  const validateForm = () => {
+    // ✨ Usar la nueva función de validación
+    if (!validateAllFields()) {
+      toast.error('Por favor corrige los errores en el formulario');
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -344,12 +392,17 @@ const CitaForm = () => {
                   name="lugar_encuentro_cita"
                   value={formData.lugar_encuentro_cita}
                   onChange={handleChange}
+                  maxLength={MAX_LENGTH.LUGAR_ENCUENTRO}
                   placeholder="Ej: Frente a la propiedad, Av. Principal #123"
                   className={`w-full px-4 py-2.5 bg-gray-900/50 border ${errors.lugar_encuentro_cita ? 'border-red-500' : 'border-gray-700'} rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all`}
                   disabled={loading}
                 />
-                {errors.lugar_encuentro_cita && (
-                  <p className="mt-1 text-sm text-red-400">{errors.lugar_encuentro_cita}</p>
+                {errors.lugar_encuentro_cita ? (
+                  <p className="mt-1 text-sm text-red-400">⚠️ {errors.lugar_encuentro_cita}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-400">
+                    {formData.lugar_encuentro_cita.length}/{MAX_LENGTH.LUGAR_ENCUENTRO} caracteres
+                  </p>
                 )}
               </div>
 
@@ -364,13 +417,20 @@ const CitaForm = () => {
                   value={formData.recordatorio_minutos_cita}
                   onChange={handleChange}
                   min="0"
+                  max="1440"
                   step="5"
-                  className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                  className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 focus:ring-2 transition-all ${
+                    errors.recordatorio_minutos_cita ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                  }`}
                   disabled={loading}
                 />
-                <p className="mt-1 text-xs text-gray-400">
-                  Tiempo antes de la cita para enviar recordatorio
-                </p>
+                {errors.recordatorio_minutos_cita ? (
+                  <p className="mt-1 text-sm text-red-400">⚠️ {errors.recordatorio_minutos_cita}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Tiempo antes de la cita para enviar recordatorio (0-1440 min)
+                  </p>
+                )}
               </div>
 
               {/* Notas */}
@@ -382,11 +442,21 @@ const CitaForm = () => {
                   name="nota_cita"
                   value={formData.nota_cita}
                   onChange={handleChange}
+                  maxLength={MAX_LENGTH.NOTA_CITA}
                   rows="4"
                   placeholder="Agregue notas adicionales sobre la visita..."
-                  className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all resize-none"
+                  className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all resize-none ${
+                    errors.nota_cita ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                  }`}
                   disabled={loading}
                 />
+                {errors.nota_cita ? (
+                  <p className="mt-1 text-sm text-red-400">⚠️ {errors.nota_cita}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-400">
+                    {formData.nota_cita.length}/{MAX_LENGTH.NOTA_CITA} caracteres
+                  </p>
+                )}
               </div>
 
             </div>

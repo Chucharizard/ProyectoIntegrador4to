@@ -192,11 +192,11 @@ const CitasList = () => {
   // 📋 Definir columnas de la tabla
   const columns = [
     {
-      header: 'Fecha y Hora',
+      header: 'Fecha/Hora',
       render: (cita) => (
-        <div className="flex items-center">
-          <ClockIcon className="h-5 w-5 text-green-400 mr-2" />
-          <span className="text-sm font-medium">{formatDateTime(cita.fecha_visita_cita)}</span>
+        <div className="flex items-center min-w-[130px]">
+          <ClockIcon className="h-4 w-4 text-green-400 mr-1.5" />
+          <span className="text-xs font-medium">{formatDateTime(cita.fecha_visita_cita)}</span>
         </div>
       )
     },
@@ -205,12 +205,9 @@ const CitasList = () => {
       render: (cita) => {
         const propiedad = propiedades[cita.id_propiedad];
         return (
-          <div className="flex items-start">
-            <HomeIcon className="h-5 w-5 text-blue-400 mr-2 flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <div className="font-medium text-gray-200">{propiedad?.titulo_propiedad || 'N/A'}</div>
-              <div className="text-gray-400 text-xs">{propiedad?.codigo_publico_propiedad || ''}</div>
-            </div>
+          <div className="max-w-[180px]">
+            <div className="font-medium text-gray-200 text-xs truncate">{propiedad?.titulo_propiedad || 'N/A'}</div>
+            <div className="text-gray-400 text-xs">{propiedad?.codigo_publico_propiedad || ''}</div>
           </div>
         );
       }
@@ -220,14 +217,11 @@ const CitasList = () => {
       render: (cita) => {
         const cliente = clientes[cita.ci_cliente];
         return (
-          <div className="flex items-center">
-            <UserIcon className="h-5 w-5 text-purple-400 mr-2" />
-            <div className="text-sm">
-              <div className="font-medium text-gray-200">
-                {cliente?.nombres_completo_cliente || 'N/A'} {cliente?.apellidos_completo_cliente || ''}
-              </div>
-              <div className="text-gray-400 text-xs">CI: {cita.ci_cliente}</div>
+          <div className="max-w-[150px]">
+            <div className="font-medium text-gray-200 text-xs truncate">
+              {cliente?.nombres_completo_cliente || 'N/A'} {cliente?.apellidos_completo_cliente || ''}
             </div>
+            <div className="text-gray-400 text-xs">CI: {cita.ci_cliente}</div>
           </div>
         );
       }
@@ -237,16 +231,16 @@ const CitasList = () => {
       render: (cita) => {
         const asesor = usuarios[cita.id_usuario_asesor];
         return (
-          <span className="text-sm text-gray-300">{asesor?.nombre_usuario || 'Sin asignar'}</span>
+          <span className="text-xs text-gray-300 truncate block max-w-[120px]">{asesor?.nombre_usuario || 'Sin asignar'}</span>
         );
       }
     },
     {
       header: 'Lugar',
       render: (cita) => (
-        <div className="flex items-start">
-          <MapPinIcon className="h-5 w-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-gray-300 max-w-xs truncate">
+        <div className="flex items-start max-w-[150px]">
+          <MapPinIcon className="h-4 w-4 text-green-400 mr-1.5 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-gray-300 truncate">
             {cita.lugar_encuentro_cita || 'N/A'}
           </div>
         </div>
@@ -255,7 +249,7 @@ const CitasList = () => {
     {
       header: 'Estado',
       render: (cita) => (
-        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoBadgeColor(cita.estado_cita)}`}>
+        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoBadgeColor(cita.estado_cita)}`}>
           {cita.estado_cita}
         </span>
       )

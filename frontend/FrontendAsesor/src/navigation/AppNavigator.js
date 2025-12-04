@@ -12,6 +12,7 @@ import PropertiesScreen from '../screens/PropertiesScreen';
 import GalleryScreen from '../screens/GalleryScreen';
 import AgendaScreen from '../screens/AgendaScreen';
 import CitaDetailScreen from '../screens/CitaDetailScreen';
+import PerfilScreen from '../screens/PerfilScreen';
 
 // Screens de mapas solo en móviles (react-native-maps no funciona en web)
 const MapScreen = Platform.OS !== 'web' ? require('../screens/MapScreen').default : null;
@@ -49,6 +50,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Gallery" component={GalleryScreen} />
             <Stack.Screen name="Agenda" component={AgendaScreen} />
             <Stack.Screen name="CitaDetail" component={CitaDetailScreen} />
+            <Stack.Screen name="Perfil" component={PerfilScreen} />
             {Platform.OS !== 'web' && MapScreen && (
               <Stack.Screen name="Map" component={MapScreen} />
             )}

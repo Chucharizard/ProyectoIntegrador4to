@@ -11,6 +11,14 @@ import BackButton from '../../components/shared/BackButton';
 import FormCard from '../../components/shared/FormCard';
 import InfoBox from '../../components/shared/InfoBox';
 
+// ✨ Importar validaciones
+import {
+  validateText,
+  validatePassword,
+  MAX_LENGTH,
+  sanitizeString
+} from '../../utils/validations';
+
 const UsuarioForm = () => {
   const { id_usuario } = useParams();
   const navigate = useNavigate();
@@ -27,6 +35,9 @@ const UsuarioForm = () => {
     id_rol: '',
     es_activo_usuario: true
   });
+
+  // ✨ Estado para errores de validación
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -89,34 +100,80 @@ const UsuarioForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Sanitizar el valor para campos de texto
+    const sanitizedValue = type === 'text' ? sanitizeString(value) : value;
+    const finalValue = type === 'checkbox' ? checked : sanitizedValue;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: finalValue
     }));
+
+    // ✨ Validar el campo en tiempo real (excepto checkbox y select)
+    if (type !== 'checkbox' && type !== 'select-one') {
+      validateField(name, finalValue);
+    }
+  };
+
+  // ✨ Validar campo individual
+  const validateField = (fieldName, value) => {
+    let error = null;
+
+    switch (fieldName) {
+      case 'nombre_usuario':
+        error = validateText(value, 'Nombre de usuario', MAX_LENGTH.NOMBRE_USUARIO, true);
+        break;
+      case 'contrasenia_usuario':
+        // Solo validar contraseña si no está vacía o si estamos creando (no en modo edición)
+        if (value || !isEditMode) {
+          error = validatePassword(value, !isEditMode);
+        }
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: error,
+    }));
+
+    return error;
+  };
+
+  // ✨ Validar todos los campos
+  const validateAllFields = () => {
+    const newErrors = {};
+    
+    newErrors.nombre_usuario = validateText(formData.nombre_usuario, 'Nombre de usuario', MAX_LENGTH.NOMBRE_USUARIO, true);
+    
+    // Solo validar contraseña si tiene contenido o estamos creando usuario
+    if (formData.contrasenia_usuario || !isEditMode) {
+      newErrors.contrasenia_usuario = validatePassword(formData.contrasenia_usuario, !isEditMode);
+    }
+
+    // Validaciones adicionales para select
+    if (!formData.ci_empleado) {
+      newErrors.ci_empleado = 'Debe seleccionar un empleado';
+    }
+    if (!formData.id_rol) {
+      newErrors.id_rol = 'Debe seleccionar un rol';
+    }
+
+    // Filtrar errores nulos
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, error]) => error !== null && error !== undefined)
+    );
+
+    setErrors(filteredErrors);
+    return Object.keys(filteredErrors).length === 0;
   };
 
   const validateForm = () => {
-    if (!formData.ci_empleado) {
-      toast.error('Debe seleccionar un empleado');
-      return false;
-    }
-    if (!formData.nombre_usuario.trim()) {
-      toast.error('El nombre de usuario es obligatorio');
-      return false;
-    }
-    
-    if (!isEditMode && !formData.contrasenia_usuario.trim()) {
-      toast.error('La contraseña es obligatoria');
-      return false;
-    }
-
-    if (formData.contrasenia_usuario.trim() && formData.contrasenia_usuario.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
-      return false;
-    }
-
-    if (!formData.id_rol) {
-      toast.error('El rol es obligatorio');
+    // ✨ Usar la nueva función de validación
+    if (!validateAllFields()) {
+      toast.error('Por favor corrige los errores en el formulario');
       return false;
     }
 
@@ -211,8 +268,9 @@ const UsuarioForm = () => {
               value={formData.ci_empleado}
               onChange={handleChange}
               disabled={isEditMode}
-              className={`w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all ${
-                isEditMode ? 'cursor-not-allowed opacity-60' : ''
+              className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 focus:ring-2 transition-all ${
+                isEditMode ? 'cursor-not-allowed opacity-60 border-gray-700 focus:ring-green-500/50 focus:border-green-500/50' : 
+                errors.ci_empleado ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
               }`}
             >
               <option value="">Seleccione un empleado</option>
@@ -222,12 +280,17 @@ const UsuarioForm = () => {
                 </option>
               ))}
             </select>
+            {errors.ci_empleado && !isEditMode && (
+              <p className="text-red-400 text-xs mt-1">⚠️ {errors.ci_empleado}</p>
+            )}
             {isEditMode && (
               <p className="text-xs text-gray-500 mt-1">El empleado no se puede modificar</p>
             )}
-            <p className="text-xs text-gray-400 mt-1">
-              Selecciona el empleado al que se le asignarán estas credenciales
-            </p>
+            {!errors.ci_empleado && !isEditMode && (
+              <p className="text-xs text-gray-400 mt-1">
+                Selecciona el empleado al que se le asignarán estas credenciales
+              </p>
+            )}
           </div>
 
           {/* Nombre de Usuario */}
@@ -243,13 +306,20 @@ const UsuarioForm = () => {
                 name="nombre_usuario"
                 value={formData.nombre_usuario}
                 onChange={handleChange}
-                className="w-full pl-12 pr-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+                maxLength={MAX_LENGTH.NOMBRE_USUARIO}
+                className={`w-full pl-12 pr-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
+                  errors.nombre_usuario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
                 placeholder="Ej: jperez"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Este será el usuario para iniciar sesión
-            </p>
+            {errors.nombre_usuario ? (
+              <p className="text-red-400 text-xs mt-1">⚠️ {errors.nombre_usuario}</p>
+            ) : (
+              <p className="text-gray-500 text-xs mt-1">
+                {formData.nombre_usuario.length}/{MAX_LENGTH.NOMBRE_USUARIO} caracteres - Este será el usuario para iniciar sesión
+              </p>
+            )}
           </div>
 
           {/* Contraseña */}
@@ -264,8 +334,11 @@ const UsuarioForm = () => {
                 name="contrasenia_usuario"
                 value={formData.contrasenia_usuario}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all pr-12"
-                placeholder={isEditMode ? 'Dejar vacío para mantener la actual' : 'Mínimo 6 caracteres'}
+                maxLength={MAX_LENGTH.PASSWORD}
+                className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all pr-12 ${
+                  errors.contrasenia_usuario ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+                }`}
+                placeholder={isEditMode ? 'Dejar vacío para mantener la actual' : 'Mínimo 8 caracteres'}
               />
               <button
                 type="button"
@@ -279,11 +352,15 @@ const UsuarioForm = () => {
                 )}
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {isEditMode 
-                ? 'Deja este campo vacío si no deseas cambiar la contraseña' 
-                : 'Mínimo 6 caracteres'}
-            </p>
+            {errors.contrasenia_usuario ? (
+              <p className="text-red-400 text-xs mt-1">⚠️ {errors.contrasenia_usuario}</p>
+            ) : (
+              <p className="text-gray-400 text-xs mt-1">
+                {isEditMode 
+                  ? 'Deja este campo vacío si no deseas cambiar la contraseña' 
+                  : 'Mínimo 8 caracteres, incluye mayúsculas, minúsculas y números'}
+              </p>
+            )}
           </div>
 
           {/* Rol */}
@@ -296,7 +373,9 @@ const UsuarioForm = () => {
               name="id_rol"
               value={formData.id_rol}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
+              className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 focus:ring-2 transition-all ${
+                errors.id_rol ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
+              }`}
             >
               <option value="">Seleccione un rol</option>
               {roles.map((rol) => (
@@ -305,9 +384,13 @@ const UsuarioForm = () => {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-400 mt-1">
-              Define los permisos del usuario en el sistema
-            </p>
+            {errors.id_rol ? (
+              <p className="text-red-400 text-xs mt-1">⚠️ {errors.id_rol}</p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">
+                Define los permisos del usuario en el sistema
+              </p>
+            )}
           </div>
 
           {/* Estado Activo */}

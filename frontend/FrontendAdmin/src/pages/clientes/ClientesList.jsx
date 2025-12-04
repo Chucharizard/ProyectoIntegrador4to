@@ -210,7 +210,7 @@ const stats = [
     {
       header: 'Nombre Completo',
       render: (row) => (
-        <span className="font-medium text-gray-100">{row.nombres_completo_cliente}</span>
+        <span className="font-medium text-gray-100">{row.nombres_completo_cliente + " " + row.apellidos_completo_cliente}</span>
       )
     },
     {
@@ -238,7 +238,7 @@ const stats = [
       render: (row) => (
         <div className="flex gap-2">
           <button
-            onClick={() => navigate(`/clientes/${row.ci_cliente}`)}
+            onClick={() => navigate(`/clientes/editar/${row.ci_cliente}`)}
             className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
             title="Editar"
           >
@@ -340,10 +340,12 @@ const stats = [
                 className="input-field w-full"
               >
                 <option value="">Todos</option>
-                <option value="Redes sociales">Redes sociales</option>
                 <option value="Referido">Referido</option>
-                <option value="Web">Web</option>
-                <option value="Llamada directa">Llamada directa</option>
+                <option value="Redes Sociales">Redes Sociales</option>
+                <option value="Sitio Web">Sitio Web</option>
+                <option value="Llamada Directa">Llamada Directa</option>
+                <option value="Oficina">Oficina</option>
+                <option value="Otro">Otro</option>
               </select>
             </div>
 

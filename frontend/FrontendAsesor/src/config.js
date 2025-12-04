@@ -7,9 +7,10 @@ export const config = {
   // Android emulador: http://10.0.2.2:8000/api
   // Red local: http://192.168.1.X:8000/api (reemplaza X con tu IP)
   // Producción: https://tu-dominio.com/api
+
   API_URL: __DEV__ 
-    ? 'http://192.168.26.3:8000/api'  // IP WiFi de tu PC para probar en teléfono
-    : 'https://tu-dominio.com/api',
+    ? 'http://192.168.76.146:8000/api'  // IP WiFi de tu PC para probar en teléfono
+    : 'https://192.168.43.246:8000/api',
 
   // Configuración de imágenes
   IMAGE_QUALITY: 0.8,

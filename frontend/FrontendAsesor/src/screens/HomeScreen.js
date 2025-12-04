@@ -21,8 +21,16 @@ export default function HomeScreen({ navigation }) {
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Bienvenido</Text>
-        <Text style={styles.userName}>{user?.nombre_usuario || 'Asesor'}</Text>
+        <View>
+          <Text style={styles.title}>Bienvenido</Text>
+          <Text style={styles.userName}>{user?.nombre_usuario || 'Asesor'}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => navigation.navigate('Perfil')}
+        >
+          <Text style={styles.profileIcon}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -53,7 +61,7 @@ export default function HomeScreen({ navigation }) {
           onPress={() => navigation.navigate('Properties')}
         >
           <Text style={styles.cardIcon}>🏠</Text>
-          <Text style={styles.cardTitle}>Mis Propiedades</Text>
+          <Text style={styles.cardTitle}>Propiedades</Text>
           <Text style={styles.cardSubtitle}>
             Ver propiedades asignadas
           </Text>
@@ -73,10 +81,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileIcon: {
+    fontSize: 24,
   },
   title: {
     fontSize: 24,

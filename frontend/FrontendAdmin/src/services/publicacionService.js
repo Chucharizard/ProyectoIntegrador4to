@@ -52,6 +52,8 @@ export const publicacionService = {
       const response = await axiosInstance.post(`${BASE_URL}/${idPropiedad}/detalles`, {
         id_propiedad: idPropiedad,
         ...detalles
+      }, {
+        timeout: 60000 // 60 segundos para operaciones de guardado
       });
       return response.data;
     } catch (error) {
@@ -72,6 +74,8 @@ export const publicacionService = {
       const response = await axiosInstance.put(`${BASE_URL}/${idPropiedad}/publicar`, {
         id_propiedad: idPropiedad,
         ...detalles
+      }, {
+        timeout: 60000 // 60 segundos para operaciones de publicación
       });
       return response.data;
     } catch (error) {

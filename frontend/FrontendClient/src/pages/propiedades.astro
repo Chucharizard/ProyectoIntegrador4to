@@ -4,7 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import PropiedadCard from '../components/PropiedadCard.astro';
 import Filtros from '../components/Filtros.astro';
-import { filtrarPropiedades } from '../data/propiedades';
+import { getPropiedadesPublicadas, generarSlug, getImagenUrl, getAmenities } from '../services/api';
 
 // Obtener parámetros de búsqueda
 const url = new URL(Astro.request.url);
@@ -14,18 +14,66 @@ const filtros = {
   tipoPropiedad: url.searchParams.get('tipoPropiedad') || undefined,
   precioMin: url.searchParams.get('precioMin') ? Number(url.searchParams.get('precioMin')) : undefined,
   precioMax: url.searchParams.get('precioMax') ? Number(url.searchParams.get('precioMax')) : undefined,
-  estado: url.searchParams.get('estado') || undefined,
+  buscar: url.searchParams.get('buscar') || undefined,
+  dormitorios: url.searchParams.get('dormitorios') ? Number(url.searchParams.get('dormitorios')) : undefined,
+  banos: url.searchParams.get('banos') ? Number(url.searchParams.get('banos')) : undefined,
 };
 
-// Filtrar propiedades
-let propiedadesFiltradas = filtrarPropiedades(filtros);
+// Obtener propiedades de la API
+let propiedadesFiltradas = await getPropiedadesPublicadas(filtros);
+
+console.log('🏠 Propiedades recibidas:', propiedadesFiltradas);
 
 // Ordenar
 const orden = url.searchParams.get('orden') || 'reciente';
 propiedadesFiltradas = propiedadesFiltradas.sort((a, b) => {
-  if (orden === 'precio-asc') return a.precio - b.precio;
-  if (orden === 'precio-desc') return b.precio - a.precio;
-  return 0; // reciente - asume que ya vienen ordenadas
+  const precioA = a.precio || 0;
+  const precioB = b.precio || 0;
+  if (orden === 'precio-asc') return precioA - precioB;
+  if (orden === 'precio-desc') return precioB - precioA;
+  // Por defecto ordenar por ID descendente (más recientes primero)
+  const idA = a.id_propiedad || a.id || 0;
+  const idB = b.id_propiedad || b.id || 0;
+  return String(idB).localeCompare(String(idA));
+});
+
+// Transformar propiedades al formato esperado por los componentes
+const propiedadesTransformadas = propiedadesFiltradas.map(prop => {
+  const detalles = prop.detalles || prop.detalle || {};
+  const direccion = prop.direccion || {};
+  const imagenes = prop.imagenes || [];
+  
+  return {
+    id: String(prop.id_propiedad || prop.id || ''),
+    slug: generarSlug({ 
+      id: prop.id_propiedad || prop.id,
+      titulo: prop.titulo_propiedad || prop.titulo,
+      slug: prop.slug 
+    } as any),
+    estado: 'activa',
+    titulo: prop.titulo_propiedad || prop.titulo || 'Sin título',
+    descripcion: prop.descripcion_propiedad || prop.descripcion || 'Sin descripción',
+    descripcionBreve: (prop.descripcion_propiedad || prop.descripcion || '').substring(0, 100) + '...',
+    tipoOperacion: (prop.tipo_operacion || '').toLowerCase().includes('venta') ? 'venta' : 'alquiler',
+    tipoPropiedad: (prop.tipo_propiedad || 'propiedad').toLowerCase(),
+    zona: direccion.barrio_direccion || direccion.barrio || 'Sin especificar',
+    ciudad: direccion.ciudad_direccion || direccion.ciudad || 'Sin especificar',
+    direccionResumida: direccion ? `${direccion.calle_direccion || direccion.calle || 'Sin calle'}, ${direccion.barrio_direccion || direccion.barrio || ''}` : 'Sin dirección',
+    coordenadas: (direccion.latitud_direccion || direccion.latitud) && (direccion.longitud_direccion || direccion.longitud) ? {
+      lat: direccion.latitud_direccion || direccion.latitud,
+      lng: direccion.longitud_direccion || direccion.longitud
+    } : undefined,
+    precio: prop.precio_propiedad || prop.precio || 0,
+    superficieTotal: prop.superficie_total_propiedad || prop.superficie_total || 0,
+    superficieConstruida: prop.superficie_construida_propiedad || prop.superficie_construida || 0,
+    dormitorios: detalles.num_dormitorios || 0,
+    banos: detalles.num_banos || 0,
+    amenities: getAmenities(detalles),
+    imagenPortada: getImagenUrl(imagenes.find(img => img.es_portada_imagen || img.es_portada)?.url_imagen || imagenes[0]?.url_imagen),
+    galeria: imagenes.map(img => getImagenUrl(img.url_imagen || img.url)),
+    destacada: false,
+    fechaPublicacion: prop.fecha_creacion_propiedad || prop.fecha_creacion || new Date().toISOString()
+  };
 });
 
 // Función helper para construir URLs con parámetros
@@ -44,10 +92,10 @@ function buildURL(params: Record<string, string | number | undefined>) {
 // Paginación simple
 const paginaActual = Number(url.searchParams.get('pagina')) || 1;
 const propiedadesPorPagina = 9;
-const totalPaginas = Math.ceil(propiedadesFiltradas.length / propiedadesPorPagina);
+const totalPaginas = Math.ceil(propiedadesTransformadas.length / propiedadesPorPagina);
 const inicio = (paginaActual - 1) * propiedadesPorPagina;
 const fin = inicio + propiedadesPorPagina;
-const propiedadesPaginadas = propiedadesFiltradas.slice(inicio, fin);
+const propiedadesPaginadas = propiedadesTransformadas.slice(inicio, fin);
 ---
 
 <Layout 
@@ -61,7 +109,7 @@ const propiedadesPaginadas = propiedadesFiltradas.slice(inicio, fin);
       <div class="page-header">
         <h1 class="page-title">Catálogo de Propiedades</h1>
         <p class="page-subtitle">
-          {propiedadesFiltradas.length} {propiedadesFiltradas.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
+          {propiedadesTransformadas.length} {propiedadesTransformadas.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
         </p>
       </div>
 
@@ -75,7 +123,7 @@ const propiedadesPaginadas = propiedadesFiltradas.slice(inicio, fin);
         <!-- Barra de herramientas -->
         <div class="toolbar">
           <p class="results-count">
-            Mostrando {inicio + 1}-{Math.min(fin, propiedadesFiltradas.length)} de {propiedadesFiltradas.length}
+            Mostrando {inicio + 1}-{Math.min(fin, propiedadesTransformadas.length)} de {propiedadesTransformadas.length}
           </p>
           
           <form method="GET" class="sort-form">
