@@ -72,12 +72,12 @@ export interface PropiedadDetalle extends Propiedad {
 
 export interface FiltrosPropiedad {
   zona?: string;
+  ciudad?: string;
   tipoOperacion?: string;
-  tipoPropiedad?: string;
   precioMin?: number;
   precioMax?: number;
-  dormitorios?: number;
-  banos?: number;
+  superficieMin?: number;
+  superficieMax?: number;
   buscar?: string;
 }
 
@@ -90,11 +90,12 @@ export async function getPropiedadesPublicadas(filtros?: FiltrosPropiedad): Prom
     
     if (filtros?.buscar) params.append('buscar', filtros.buscar);
     if (filtros?.tipoOperacion) params.append('tipo_operacion', filtros.tipoOperacion);
-    if (filtros?.tipoPropiedad) params.append('tipo_propiedad', filtros.tipoPropiedad);
+    if (filtros?.zona) params.append('zona', filtros.zona);
+    if (filtros?.ciudad) params.append('ciudad', filtros.ciudad);
     if (filtros?.precioMin) params.append('precio_min', filtros.precioMin.toString());
     if (filtros?.precioMax) params.append('precio_max', filtros.precioMax.toString());
-    if (filtros?.dormitorios) params.append('dormitorios', filtros.dormitorios.toString());
-    if (filtros?.banos) params.append('banos', filtros.banos.toString());
+    if (filtros?.superficieMin) params.append('superficie_min', filtros.superficieMin.toString());
+    if (filtros?.superficieMax) params.append('superficie_max', filtros.superficieMax.toString());
 
     const url = `${API_BASE_URL}/api/propiedades/publicadas/lista${params.toString() ? `?${params.toString()}` : ''}`;
     

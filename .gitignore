@@ -15,6 +15,13 @@ build/
 out/
 .npm/
 .yarn/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# --- Astro ---
+.astro/
+.vercel/
 
 # --- Python / FastAPI ---
 __pycache__/

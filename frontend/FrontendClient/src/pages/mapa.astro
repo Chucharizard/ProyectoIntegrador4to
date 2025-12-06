@@ -2,9 +2,61 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { propiedades, zonas, tiposPropiedad, tiposOperacion } from '../data/propiedades';
+import { getPropiedadesPublicadas } from '../services/api';
 
-const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.estado === 'activa');
+// Obtener parámetros de filtro
+const url = Astro.url;
+const buscar = url.searchParams.get('buscar') || url.searchParams.get('busqueda') || undefined;
+const tipoOperacion = url.searchParams.get('tipoOperacion') || undefined;
+const zona = url.searchParams.get('zona') || undefined;
+const ciudad = url.searchParams.get('ciudad') || undefined;
+const precioMin = url.searchParams.get('precioMin') ? parseFloat(url.searchParams.get('precioMin')!) : undefined;
+const precioMax = url.searchParams.get('precioMax') ? parseFloat(url.searchParams.get('precioMax')!) : undefined;
+const superficieMin = url.searchParams.get('superficieMin') ? parseFloat(url.searchParams.get('superficieMin')!) : undefined;
+const superficieMax = url.searchParams.get('superficieMax') ? parseFloat(url.searchParams.get('superficieMax')!) : undefined;
+
+// Obtener propiedades desde el backend
+const filtros = {
+  buscar,
+  tipoOperacion,
+  zona,
+  ciudad,
+  precioMin,
+  precioMax,
+  superficieMin,
+  superficieMax
+};
+
+let propiedades: any[] = [];
+let todasPropiedades: any[] = [];
+
+try {
+  propiedades = await getPropiedadesPublicadas(filtros);
+  todasPropiedades = await getPropiedadesPublicadas();
+} catch (error) {
+  console.error('Error al cargar propiedades:', error);
+  propiedades = [];
+  todasPropiedades = [];
+}
+
+// Filtrar solo propiedades con coordenadas válidas
+const propiedadesConCoordenadas = propiedades.filter(p => 
+  p.direccion?.latitud_direccion && 
+  p.direccion?.longitud_direccion &&
+  !isNaN(p.direccion.latitud_direccion) &&
+  !isNaN(p.direccion.longitud_direccion)
+);
+
+// Extraer valores únicos para los selectores dinámicos
+const zonasUnicas = [...new Set(todasPropiedades
+  .map(p => p.direccion?.zona_direccion)
+  .filter(z => z && z.trim() !== '')
+)].sort();
+
+const ciudadesUnicas = [...new Set(todasPropiedades
+  .map(p => p.direccion?.ciudad_direccion)
+  .filter(c => c && c.trim() !== '')
+)].sort();
 ---
 
 <Layout 
@@ -22,91 +74,164 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
           <button class="sidebar-close" aria-label="Cerrar filtros">×</button>
         </div>
 
-        <form class="map-filters">
-          <!-- Tipo de operación -->
-          <div class="filter-group">
-            <label for="tipo-operacion" class="filter-label">Operación</label>
-            <select id="tipo-operacion" name="tipoOperacion" class="filter-input">
-              <option value="">Todas</option>
-              {tiposOperacion.map(tipo => (
-                <option value={tipo.value}>{tipo.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <!-- Tipo de propiedad -->
-          <div class="filter-group">
-            <label for="tipo-propiedad" class="filter-label">Tipo de propiedad</label>
-            <select id="tipo-propiedad" name="tipoPropiedad" class="filter-input">
-              <option value="">Todos</option>
-              {tiposPropiedad.map(tipo => (
-                <option value={tipo.value}>{tipo.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <!-- Zona -->
-          <div class="filter-group">
-            <label for="zona" class="filter-label">Zona</label>
-            <select id="zona" name="zona" class="filter-input">
-              <option value="">Todas las zonas</option>
-              {zonas.map(zona => (
-                <option value={zona}>{zona}</option>
-              ))}
-            </select>
-          </div>
-
-          <!-- Rango de precio -->
-          <div class="filter-group">
-            <label class="filter-label">Rango de precio</label>
-            <div class="price-inputs">
+        <div class="sidebar-content">
+          <form class="map-filters" method="get">
+            <!-- Búsqueda por texto -->
+            <div class="filter-group">
+              <label for="buscar" class="filter-label">Buscar</label>
               <input
-                type="number"
-                name="precioMin"
-                placeholder="Mín"
-                class="filter-input filter-input-small"
-                step="1000"
-              />
-              <span>-</span>
-              <input
-                type="number"
-                name="precioMax"
-                placeholder="Máx"
-                class="filter-input filter-input-small"
-                step="1000"
+                type="text"
+                id="buscar"
+                name="buscar"
+                placeholder="Título o descripción..."
+                class="filter-input"
+                value={buscar || ''}
               />
             </div>
-          </div>
 
-          <button type="submit" class="btn btn-primary btn-block">
-            Aplicar filtros
-          </button>
-        </form>
+            <!-- Tipo de operación -->
+            <div class="filter-group">
+              <label for="tipo-operacion" class="filter-label">Operación</label>
+              <select id="tipo-operacion" name="tipoOperacion" class="filter-input">
+                <option value="">Todas</option>
+                <option value="Venta" selected={tipoOperacion === 'Venta'}>Venta</option>
+                <option value="Alquiler" selected={tipoOperacion === 'Alquiler'}>Alquiler</option>
+                <option value="Anticretico" selected={tipoOperacion === 'Anticretico'}>Anticretico</option>
+              </select>
+            </div>
 
-        <!-- Lista de propiedades -->
-        <div class="properties-list">
-          <h3 class="list-title">{propiedadesConCoordenadas.length} propiedades</h3>
-          <div class="properties-scroll">
-            {propiedadesConCoordenadas.map(propiedad => (
-              <a href={`/propiedad/${propiedad.slug}`} class="property-mini-card">
-                <img 
-                  src={propiedad.imagenPortada} 
-                  alt={propiedad.titulo}
-                  class="mini-card-image"
+            <!-- Ciudad -->
+            <div class="filter-group">
+              <label for="ciudad" class="filter-label">Ciudad</label>
+              <select id="ciudad" name="ciudad" class="filter-input">
+                <option value="">Todas las ciudades</option>
+                {ciudadesUnicas.map(c => (
+                  <option value={c} selected={ciudad === c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <!-- Zona -->
+            <div class="filter-group">
+              <label for="zona" class="filter-label">Zona</label>
+              <select id="zona" name="zona" class="filter-input">
+                <option value="">Todas las zonas</option>
+                {zonasUnicas.map(z => (
+                  <option value={z} selected={zona === z}>{z}</option>
+                ))}
+              </select>
+            </div>
+
+            <!-- Rango de precio -->
+            <div class="filter-group">
+              <label class="filter-label">Precio (USD)</label>
+              <div class="range-inputs">
+                <input
+                  type="number"
+                  name="precioMin"
+                  placeholder="Mínimo"
+                  class="filter-input filter-input-small"
+                  step="1000"
+                  value={precioMin || ''}
                 />
-                <div class="mini-card-content">
-                  <h4 class="mini-card-title">{propiedad.titulo}</h4>
-                  <p class="mini-card-location">{propiedad.zona}</p>
-                  <p class="mini-card-price">
-                    {new Intl.NumberFormat('es-PE', {
-                      style: 'currency',
-                      currency: 'USD',
-                      maximumFractionDigits: 0
-                    }).format(propiedad.precio)}
-                  </p>
+                <span class="range-separator">-</span>
+                <input
+                  type="number"
+                  name="precioMax"
+                  placeholder="Máximo"
+                  class="filter-input filter-input-small"
+                  step="1000"
+                  value={precioMax || ''}
+                />
+              </div>
+            </div>
+
+            <!-- Rango de superficie -->
+            <div class="filter-group">
+              <label class="filter-label">Superficie (m²)</label>
+              <div class="range-inputs">
+                <input
+                  type="number"
+                  name="superficieMin"
+                  placeholder="Mínimo"
+                  class="filter-input filter-input-small"
+                  step="10"
+                  value={superficieMin || ''}
+                />
+                <span class="range-separator">-</span>
+                <input
+                  type="number"
+                  name="superficieMax"
+                  placeholder="Máximo"
+                  class="filter-input filter-input-small"
+                  step="10"
+                  value={superficieMax || ''}
+                />
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+              🔍 Aplicar filtros
+            </button>
+            
+            <a href="/mapa" class="btn btn-secondary btn-block">
+              🔄 Limpiar filtros
+            </a>
+          </form>
+
+          <!-- Lista de propiedades -->
+          <div class="properties-list">
+            <h3 class="list-title">{propiedadesConCoordenadas.length} propiedades encontradas</h3>
+            <div class="properties-scroll">
+              {propiedadesConCoordenadas.length > 0 ? (
+                propiedadesConCoordenadas.map(propiedad => {
+                  const imagenUrl = propiedad.imagenes && propiedad.imagenes.length > 0
+                    ? `http://localhost:8000${propiedad.imagenes[0].url_imagen}`
+                    : '/placeholder-property.jpg';
+                  
+                  // Generar slug para el link
+                  const titulo = propiedad.titulo_propiedad
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                    .trim();
+                  const slug = `${titulo}-${propiedad.id_propiedad}`;
+                  
+                  return (
+                    <a href={`/propiedad/${slug}`} class="property-mini-card" data-property-id={propiedad.id_propiedad}>
+                      <img 
+                        src={imagenUrl} 
+                        alt={propiedad.titulo_propiedad}
+                        class="mini-card-image"
+                        loading="lazy"
+                      />
+                      <div class="mini-card-content">
+                        <h4 class="mini-card-title">{propiedad.titulo_propiedad}</h4>
+                        <p class="mini-card-location">
+                          📍 {propiedad.direccion?.zona_direccion || propiedad.direccion?.ciudad_direccion || 'Sin ubicación'}
+                        </p>
+                        <div class="mini-card-details">
+                          <p class="mini-card-price">
+                            ${new Intl.NumberFormat('es-BO').format(propiedad.precio_publicado_propiedad)}
+                          </p>
+                          <p class="mini-card-surface">
+                            📏 {propiedad.superficie_propiedad} m²
+                          </p>
+                        </div>
+                      </div>
+                    </a>
+                  );
+                })
+              ) : (
+                <div class="no-properties">
+                  <p>😕 No se encontraron propiedades con estos filtros</p>
+                  <a href="/mapa" class="btn btn-secondary">Ver todas</a>
                 </div>
-              </a>
-            ))}
+              )}
+            </div>
           </div>
         </div>
       </aside>
@@ -121,38 +246,27 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
           </svg>
         </button>
 
-        <div class="map-canvas">
-          <div class="map-placeholder">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"></path>
-              <line x1="8" y1="2" x2="8" y2="18"></line>
-              <line x1="16" y1="6" x2="16" y2="22"></line>
+        <div id="map-canvas" class="map-canvas"></div>
+        
+        <!-- Controles del mapa -->
+        <div class="map-controls">
+          <button id="btn-zoom-in" class="map-control-btn" title="Acercar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <h3>Mapa de propiedades</h3>
-            <p>Aquí se mostraría el mapa interactivo con {propiedadesConCoordenadas.length} marcadores</p>
-            <p class="map-note">En producción se integraría Google Maps, Mapbox o Leaflet</p>
-          </div>
-
-          <!-- Controles del mapa -->
-          <div class="map-controls">
-            <button class="map-control-btn" title="Acercar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
-            <button class="map-control-btn" title="Alejar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
-            <button class="map-control-btn" title="Mi ubicación">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-          </div>
+          </button>
+          <button id="btn-zoom-out" class="map-control-btn" title="Alejar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button id="btn-my-location" class="map-control-btn" title="Mi ubicación">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -175,7 +289,7 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
   /* Sidebar */
   .map-sidebar {
     width: 100%;
-    max-width: 400px;
+    max-width: 380px;
     background-color: var(--color-bg);
     border-right: var(--border-width) solid var(--color-border);
     display: flex;
@@ -189,6 +303,7 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     justify-content: space-between;
     padding: var(--spacing-lg) var(--spacing-xl);
     border-bottom: var(--border-width) solid var(--color-border);
+    flex-shrink: 0;
   }
 
   .sidebar-title {
@@ -208,20 +323,29 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
+    line-height: 1;
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   .map-filters {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
     border-bottom: var(--border-width) solid var(--color-border);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
+    flex-shrink: 0;
   }
 
   .filter-group {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
   }
 
   .filter-label {
@@ -232,10 +356,11 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
 
   .filter-input {
     padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--border-radius-md);
     background-color: var(--color-bg);
+    transition: border-color var(--transition-fast);
   }
 
   .filter-input:focus {
@@ -244,14 +369,20 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
-  .price-inputs {
+  .range-inputs {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
   }
 
+  .range-separator {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+  }
+
   .filter-input-small {
     flex: 1;
+    min-width: 0;
   }
 
   .btn-block {
@@ -259,32 +390,67 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     justify-content: center;
   }
 
+  .btn-secondary {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-border);
+  }
+
   .properties-list {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
   }
 
   .list-title {
-    padding: var(--spacing-lg) var(--spacing-xl);
-    font-size: var(--font-size-base);
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     margin: 0;
     border-bottom: var(--border-width) solid var(--color-border);
+    background-color: var(--color-bg-secondary);
+    flex-shrink: 0;
   }
 
   .properties-scroll {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
+    min-height: 0;
+  }
+
+  /* Scrollbar personalizado */
+  .properties-scroll::-webkit-scrollbar,
+  .sidebar-content::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .properties-scroll::-webkit-scrollbar-track,
+  .sidebar-content::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+  }
+
+  .properties-scroll::-webkit-scrollbar-thumb,
+  .sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+
+  .properties-scroll::-webkit-scrollbar-thumb:hover,
+  .sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
   }
 
   .property-mini-card {
     display: flex;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
     background-color: var(--color-bg);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--border-radius-md);
@@ -296,11 +462,12 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
   .property-mini-card:hover {
     box-shadow: var(--shadow-md);
     border-color: var(--color-primary);
+    transform: translateY(-2px);
   }
 
   .mini-card-image {
-    width: 80px;
-    height: 80px;
+    width: 70px;
+    height: 70px;
     object-fit: cover;
     border-radius: var(--border-radius-sm);
     flex-shrink: 0;
@@ -311,88 +478,93 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    min-width: 0;
   }
 
   .mini-card-title {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-height: 1.3;
   }
 
   .mini-card-location {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mini-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mini-card-price {
     font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
+  }
+
+  .mini-card-surface {
+    font-size: 10px;
     color: var(--color-text-secondary);
     margin: 0;
   }
 
-  .mini-card-price {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-primary);
-    margin: 0;
+  .no-properties {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-secondary);
+  }
+
+  .no-properties p {
+    margin-bottom: var(--spacing-md);
   }
 
   /* Map Main */
   .map-main {
     position: relative;
     flex: 1;
-    background-color: var(--color-bg-tertiary);
+    background-color: #e5e3df;
+    min-width: 0;
   }
 
   .map-toggle-sidebar {
     position: absolute;
     top: var(--spacing-md);
     left: var(--spacing-md);
-    z-index: 10;
+    z-index: 400;
     display: none;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     background-color: var(--color-bg);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-md);
     cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .map-toggle-sidebar:hover {
+    background-color: var(--color-primary);
+    color: white;
   }
 
   .map-canvas {
     width: 100%;
     height: 100%;
-  }
-
-  .map-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-lg);
-    height: 100%;
-    color: var(--color-text-secondary);
-    padding: var(--spacing-xl);
-    text-align: center;
-  }
-
-  .map-placeholder h3 {
-    font-size: var(--font-size-2xl);
-    color: var(--color-text);
-    margin: 0;
-  }
-
-  .map-placeholder p {
-    font-size: var(--font-size-base);
-    margin: 0;
-  }
-
-  .map-note {
-    padding: var(--spacing-md);
-    background-color: var(--color-bg-secondary);
-    border-radius: var(--border-radius-md);
-    font-size: var(--font-size-sm);
+    z-index: 1;
   }
 
   .map-controls {
@@ -402,6 +574,7 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    z-index: 400;
   }
 
   .map-control-btn {
@@ -420,52 +593,88 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
 
   .map-control-btn:hover {
     background-color: var(--color-bg-secondary);
+    border-color: var(--color-primary);
   }
 
-  /* Responsive - Mobile */
-  @media (max-width: 480px) {
-    .page-header {
-      padding: var(--spacing-xl) 0 var(--spacing-md);
-    }
-
-    .page-title {
-      font-size: var(--font-size-2xl);
-    }
-
-    .page-description {
-      font-size: var(--font-size-sm);
-    }
-
-    .map-sidebar {
-      width: 100%;
-      max-width: 100%;
-    }
-
-    .property-card-compact {
-      padding: var(--spacing-sm);
-    }
-
-    .property-card-compact h3 {
-      font-size: var(--font-size-sm);
-    }
-
-    .property-card-compact .price {
-      font-size: var(--font-size-base);
-    }
-
-    .map-toggle-sidebar {
-      padding: var(--spacing-sm) var(--spacing-md);
-      font-size: var(--font-size-sm);
-    }
+  .map-control-btn:active {
+    transform: scale(0.95);
   }
 
+  /* Estilos para el mapa Leaflet */
+  :global(.leaflet-container) {
+    font-family: inherit;
+    z-index: 1;
+  }
+
+  :global(.leaflet-popup-content-wrapper) {
+    border-radius: var(--border-radius-md);
+    padding: 0;
+  }
+
+  :global(.leaflet-popup-content) {
+    margin: 0;
+    min-width: 200px;
+  }
+
+  :global(.marker-popup) {
+    padding: var(--spacing-sm);
+  }
+
+  :global(.marker-popup-title) {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text);
+  }
+
+  :global(.marker-popup-price) {
+    color: var(--color-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
+  }
+
+  :global(.marker-popup-location) {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-top: var(--spacing-xs);
+  }
+
+  :global(.marker-popup-link) {
+    display: inline-block;
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background-color: white;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    text-decoration: none;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    transition: all var(--transition-fast);
+  }
+
+  :global(.marker-popup-link:hover) {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  :global(.marker-popup-image) {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Responsive */
   @media (max-width: 768px) {
     .map-sidebar {
       position: absolute;
       top: 0;
       left: 0;
       bottom: 0;
-      z-index: 100;
+      z-index: 500;
+      max-width: 320px;
       transform: translateX(-100%);
       transition: transform var(--transition-base);
       box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
@@ -484,16 +693,241 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
     }
   }
 
-  @media (min-width: 769px) {
+  @media (min-width: 769px) and (max-width: 1024px) {
     .map-sidebar {
-      max-width: 400px;
+      max-width: 320px;
+    }
+    
+    .mini-card-image {
+      width: 60px;
+      height: 60px;
     }
   }
 </style>
 
-<script>
-  // Toggle sidebar en móviles
-  document.addEventListener('DOMContentLoaded', () => {
+<script define:vars={{ propiedadesConCoordenadas }}>
+  // Cargar Leaflet dinámicamente
+  if (typeof window !== 'undefined') {
+    // Agregar CSS de Leaflet
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+    link.crossOrigin = '';
+    document.head.appendChild(link);
+
+    // Cargar JS de Leaflet
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+    script.crossOrigin = '';
+    
+    script.onload = () => {
+      initMap();
+    };
+    
+    document.head.appendChild(script);
+  }
+
+  function initMap() {
+    const mapElement = document.getElementById('map-canvas');
+    if (!mapElement || typeof L === 'undefined') return;
+
+    // Centro por defecto (Bolivia - Sucre)
+    let centerLat = -19.0332;
+    let centerLng = -65.2627;
+    let initialZoom = 13;
+
+    // Si hay propiedades, centrar en la primera o calcular centro
+    if (propiedadesConCoordenadas.length > 0) {
+      if (propiedadesConCoordenadas.length === 1) {
+        centerLat = propiedadesConCoordenadas[0].direccion.latitud_direccion;
+        centerLng = propiedadesConCoordenadas[0].direccion.longitud_direccion;
+      } else {
+        // Calcular centro promedio
+        const lats = propiedadesConCoordenadas.map(p => p.direccion.latitud_direccion);
+        const lngs = propiedadesConCoordenadas.map(p => p.direccion.longitud_direccion);
+        centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+        centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+        initialZoom = 12;
+      }
+    }
+
+    // Crear el mapa
+    const map = L.map('map-canvas').setView([centerLat, centerLng], initialZoom);
+
+    // Agregar capa de tiles de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Icono personalizado para propiedades
+    const propertyIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    // Icono para ubicación del usuario
+    const userIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    let userMarker = null;
+
+    // Agregar marcadores de propiedades
+    propiedadesConCoordenadas.forEach(propiedad => {
+      const lat = propiedad.direccion.latitud_direccion;
+      const lng = propiedad.direccion.longitud_direccion;
+      
+      const marker = L.marker([lat, lng], { icon: propertyIcon }).addTo(map);
+      
+      const precio = new Intl.NumberFormat('es-BO').format(propiedad.precio_publicado_propiedad);
+      const ubicacion = propiedad.direccion.zona_direccion 
+        ? `${propiedad.direccion.zona_direccion}, ${propiedad.direccion.ciudad_direccion}`
+        : propiedad.direccion.ciudad_direccion;
+      
+      // Generar slug para el link
+      const titulo = propiedad.titulo_propiedad
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      const slug = `${titulo}-${propiedad.id_propiedad}`;
+      
+      // Obtener imagen de portada
+      const imagenUrl = propiedad.imagenes && propiedad.imagenes.length > 0
+        ? `http://localhost:8000${propiedad.imagenes[0].url_imagen}`
+        : '/placeholder-property.jpg';
+      
+      marker.bindPopup(`
+        <div class="marker-popup">
+          <img src="${imagenUrl}" alt="${propiedad.titulo_propiedad}" class="marker-popup-image" />
+          <div class="marker-popup-title">${propiedad.titulo_propiedad}</div>
+          <div class="marker-popup-price">$${precio}</div>
+          <div class="marker-popup-location">📍 ${ubicacion}</div>
+          <div style="margin-top: 8px;">
+            <span style="font-size: 11px;">📏 ${propiedad.superficie_propiedad} m²</span>
+            <span style="margin-left: 8px; font-size: 11px;">🏷️ ${propiedad.tipo_operacion_propiedad}</span>
+          </div>
+          <a href="/propiedad/${slug}" class="marker-popup-link">
+            Ver detalles →
+          </a>
+        </div>
+      `);
+
+      // Resaltar propiedad al hacer hover en la tarjeta
+      const cards = document.querySelectorAll('.property-mini-card');
+      cards.forEach(card => {
+        const cardPropertyId = card.getAttribute('data-property-id');
+        if (cardPropertyId === propiedad.id_propiedad) {
+          card.addEventListener('mouseenter', () => {
+            marker.openPopup();
+          });
+        }
+      });
+    });
+
+    // Ajustar vista si hay múltiples propiedades
+    if (propiedadesConCoordenadas.length > 1) {
+      const bounds = L.latLngBounds(
+        propiedadesConCoordenadas.map(p => [
+          p.direccion.latitud_direccion,
+          p.direccion.longitud_direccion
+        ])
+      );
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    // Controles del mapa
+    const zoomInBtn = document.getElementById('btn-zoom-in');
+    const zoomOutBtn = document.getElementById('btn-zoom-out');
+    const myLocationBtn = document.getElementById('btn-my-location');
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener('click', () => {
+        map.zoomIn();
+      });
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener('click', () => {
+        map.zoomOut();
+      });
+    }
+
+    if (myLocationBtn) {
+      myLocationBtn.addEventListener('click', () => {
+        if ('geolocation' in navigator) {
+          myLocationBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          `;
+          
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLng = position.coords.longitude;
+              
+              // Remover marcador anterior si existe
+              if (userMarker) {
+                map.removeLayer(userMarker);
+              }
+              
+              // Agregar marcador de usuario
+              userMarker = L.marker([userLat, userLng], { icon: userIcon }).addTo(map);
+              userMarker.bindPopup(`
+                <div class="marker-popup">
+                  <div class="marker-popup-title">📍 Tu ubicación</div>
+                  <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                    Lat: ${userLat.toFixed(6)}<br>
+                    Lng: ${userLng.toFixed(6)}
+                  </div>
+                </div>
+              `).openPopup();
+              
+              // Centrar mapa en usuario
+              map.setView([userLat, userLng], 14);
+              
+              // Restaurar ícono
+              myLocationBtn.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              `;
+            },
+            (error) => {
+              console.error('Error al obtener ubicación:', error);
+              alert('No se pudo obtener tu ubicación. Verifica los permisos del navegador.');
+              myLocationBtn.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              `;
+            }
+          );
+        } else {
+          alert('Tu navegador no soporta geolocalización.');
+        }
+      });
+    }
+
+    // Toggle sidebar en móviles
     const toggleBtn = document.querySelector('.map-toggle-sidebar');
     const closeBtn = document.querySelector('.sidebar-close');
     const sidebar = document.querySelector('.map-sidebar');
@@ -509,5 +943,17 @@ const propiedadesConCoordenadas = propiedades.filter(p => p.coordenadas && p.est
         sidebar.classList.remove('active');
       });
     }
-  });
+
+    // Cerrar sidebar al hacer clic fuera en móvil
+    if (window.innerWidth <= 768) {
+      map.on('click', () => {
+        sidebar?.classList.remove('active');
+      });
+    }
+
+    // Ajustar el mapa después de que se renderice
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+  }
 </script>

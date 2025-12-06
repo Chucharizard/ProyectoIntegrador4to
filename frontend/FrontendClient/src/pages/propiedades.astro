@@ -10,13 +10,13 @@ import { getPropiedadesPublicadas, generarSlug, getImagenUrl, getAmenities } fro
 const url = new URL(Astro.request.url);
 const filtros = {
   zona: url.searchParams.get('zona') || undefined,
+  ciudad: url.searchParams.get('ciudad') || undefined,
   tipoOperacion: url.searchParams.get('tipoOperacion') || undefined,
-  tipoPropiedad: url.searchParams.get('tipoPropiedad') || undefined,
   precioMin: url.searchParams.get('precioMin') ? Number(url.searchParams.get('precioMin')) : undefined,
   precioMax: url.searchParams.get('precioMax') ? Number(url.searchParams.get('precioMax')) : undefined,
-  buscar: url.searchParams.get('buscar') || undefined,
-  dormitorios: url.searchParams.get('dormitorios') ? Number(url.searchParams.get('dormitorios')) : undefined,
-  banos: url.searchParams.get('banos') ? Number(url.searchParams.get('banos')) : undefined,
+  superficieMin: url.searchParams.get('superficieMin') ? Number(url.searchParams.get('superficieMin')) : undefined,
+  superficieMax: url.searchParams.get('superficieMax') ? Number(url.searchParams.get('superficieMax')) : undefined,
+  buscar: url.searchParams.get('buscar') || url.searchParams.get('busqueda') || undefined,
 };
 
 // Obtener propiedades de la API
@@ -54,17 +54,17 @@ const propiedadesTransformadas = propiedadesFiltradas.map(prop => {
     titulo: prop.titulo_propiedad || prop.titulo || 'Sin título',
     descripcion: prop.descripcion_propiedad || prop.descripcion || 'Sin descripción',
     descripcionBreve: (prop.descripcion_propiedad || prop.descripcion || '').substring(0, 100) + '...',
-    tipoOperacion: (prop.tipo_operacion || '').toLowerCase().includes('venta') ? 'venta' : 'alquiler',
-    tipoPropiedad: (prop.tipo_propiedad || 'propiedad').toLowerCase(),
-    zona: direccion.barrio_direccion || direccion.barrio || 'Sin especificar',
+    tipoOperacion: (prop.tipo_operacion_propiedad || prop.tipo_operacion || '').toLowerCase().includes('venta') ? 'venta' : 'alquiler',
+    tipoPropiedad: 'propiedad',
+    zona: direccion.zona_direccion || direccion.zona || direccion.barrio_direccion || direccion.barrio || 'Sin especificar',
     ciudad: direccion.ciudad_direccion || direccion.ciudad || 'Sin especificar',
-    direccionResumida: direccion ? `${direccion.calle_direccion || direccion.calle || 'Sin calle'}, ${direccion.barrio_direccion || direccion.barrio || ''}` : 'Sin dirección',
+    direccionResumida: direccion ? `${direccion.calle_direccion || direccion.calle || 'Sin calle'}, ${direccion.zona_direccion || direccion.zona || ''}` : 'Sin dirección',
     coordenadas: (direccion.latitud_direccion || direccion.latitud) && (direccion.longitud_direccion || direccion.longitud) ? {
       lat: direccion.latitud_direccion || direccion.latitud,
       lng: direccion.longitud_direccion || direccion.longitud
     } : undefined,
-    precio: prop.precio_propiedad || prop.precio || 0,
-    superficieTotal: prop.superficie_total_propiedad || prop.superficie_total || 0,
+    precio: prop.precio_publicado_propiedad || prop.precio_propiedad || prop.precio || 0,
+    superficieTotal: prop.superficie_propiedad || prop.superficie_total_propiedad || prop.superficie_total || 0,
     superficieConstruida: prop.superficie_construida_propiedad || prop.superficie_construida || 0,
     dormitorios: detalles.num_dormitorios || 0,
     banos: detalles.num_banos || 0,
@@ -72,7 +72,7 @@ const propiedadesTransformadas = propiedadesFiltradas.map(prop => {
     imagenPortada: getImagenUrl(imagenes.find(img => img.es_portada_imagen || img.es_portada)?.url_imagen || imagenes[0]?.url_imagen),
     galeria: imagenes.map(img => getImagenUrl(img.url_imagen || img.url)),
     destacada: false,
-    fechaPublicacion: prop.fecha_creacion_propiedad || prop.fecha_creacion || new Date().toISOString()
+    fechaPublicacion: prop.fecha_publicacion_propiedad || prop.fecha_creacion_propiedad || prop.fecha_creacion || new Date().toISOString()
   };
 });
 

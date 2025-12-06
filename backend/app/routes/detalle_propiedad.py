@@ -1,8 +1,8 @@
 """
 Router para endpoints de Detalle de Propiedad (características para publicación)
 """
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import List, Optional
 from app.schemas.detalle_propiedad import DetalleCreate, DetalleUpdate, DetalleResponse
 from app.database import get_supabase_client
 from app.utils.dependencies import get_current_active_user
@@ -173,12 +173,29 @@ async def despublicar_propiedad(
 
 
 @router.get("/propiedades/publicadas/lista", response_model=List[dict])
-async def listar_propiedades_publicadas():
+async def listar_propiedades_publicadas(
+    buscar: Optional[str] = Query(None, description="Buscar en título o descripción"),
+    tipo_operacion: Optional[str] = Query(None, description="Tipo de operación: Venta o Alquiler"),
+    zona: Optional[str] = Query(None, description="Zona de la propiedad"),
+    ciudad: Optional[str] = Query(None, description="Ciudad de la propiedad"),
+    precio_min: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
+    precio_max: Optional[float] = Query(None, ge=0, description="Precio máximo"),
+    superficie_min: Optional[float] = Query(None, ge=0, description="Superficie mínima en m²"),
+    superficie_max: Optional[float] = Query(None, ge=0, description="Superficie máxima en m²"),
+):
     """
-    Lista todas las propiedades publicadas con sus detalles.
+    Lista todas las propiedades publicadas con sus detalles y filtros opcionales.
     
     Endpoint PÚBLICO - No requiere autenticación (para sitio web de clientes).
     Retorna propiedad + detalles + dirección en un solo objeto.
+    
+    Filtros disponibles:
+    - buscar: Busca en título y descripción
+    - tipo_operacion: "Venta" o "Alquiler"
+    - zona: Zona específica
+    - ciudad: Ciudad específica
+    - precio_min/precio_max: Rango de precios
+    - superficie_min/superficie_max: Rango de superficie
     """
     supabase = get_supabase_client()
     
@@ -204,6 +221,50 @@ async def listar_propiedades_publicadas():
                 "direccion": direccion.data[0] if direccion.data else None,
                 "imagenes": imagenes.data if imagenes.data else []
             }
+            
+            # Aplicar filtros
+            direccion_data = prop_completa.get("direccion", {}) or {}
+            
+            # Filtro de búsqueda en título y descripción
+            if buscar:
+                titulo = (prop_completa.get("titulo_propiedad") or "").lower()
+                descripcion = (prop_completa.get("descripcion_propiedad") or "").lower()
+                buscar_lower = buscar.lower()
+                if buscar_lower not in titulo and buscar_lower not in descripcion:
+                    continue
+            
+            # Filtro de tipo de operación
+            if tipo_operacion:
+                if (prop_completa.get("tipo_operacion_propiedad") or "").lower() != tipo_operacion.lower():
+                    continue
+            
+            # Filtro de zona
+            if zona:
+                zona_prop = direccion_data.get("zona_direccion") or ""
+                if zona.lower() not in zona_prop.lower():
+                    continue
+            
+            # Filtro de ciudad
+            if ciudad:
+                ciudad_prop = direccion_data.get("ciudad_direccion") or ""
+                if ciudad.lower() != ciudad_prop.lower():
+                    continue
+            
+            # Filtro de precio
+            precio = prop_completa.get("precio_publicado_propiedad")
+            if precio is not None:
+                if precio_min is not None and precio < precio_min:
+                    continue
+                if precio_max is not None and precio > precio_max:
+                    continue
+            
+            # Filtro de superficie
+            superficie = prop_completa.get("superficie_propiedad")
+            if superficie is not None:
+                if superficie_min is not None and superficie < superficie_min:
+                    continue
+                if superficie_max is not None and superficie > superficie_max:
+                    continue
             
             resultado.append(prop_completa)
         

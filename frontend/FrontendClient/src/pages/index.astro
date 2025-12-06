@@ -71,14 +71,15 @@ const zonas = zonasUnicas.slice(0, 6); // Máximo 6 zonas para mostrar
           <form method="GET" action="/propiedades" class="search-form">
             <div class="search-input-group">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
               </svg>
               <input
                 type="text"
-                name="busqueda"
+                name="buscar"
                 placeholder="¿Qué estás buscando? Casa, apartamento, zona..."
                 class="search-input"
+                required
               />
             </div>
             <button type="submit" class="btn btn-primary search-btn">

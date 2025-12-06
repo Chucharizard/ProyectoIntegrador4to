@@ -2,11 +2,11 @@
 export interface Propiedad {
   id: string;
   slug: string;
-  estado: 'activa' | 'reservada' | 'vendida' | 'borrador';
+  estado: 'captada' | 'publicada' | 'reservada' | 'cerrada';
   titulo: string;
   descripcion: string;
   descripcionBreve: string;
-  tipoOperacion: 'venta' | 'alquiler';
+  tipoOperacion: 'venta' | 'alquiler' | 'anticrético';
   tipoPropiedad: 'casa' | 'apartamento' | 'terreno' | 'local' | 'oficina';
   zona: string;
   ciudad: string;
