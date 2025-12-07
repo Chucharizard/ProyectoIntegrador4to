@@ -136,10 +136,10 @@ const Dashboard = () => {
         montoPagosMes: montoPagosMes
       });
 
-      // Propiedades por tipo
+      // Propiedades por tipo de operación
       const tiposCount = {};
       propiedades.forEach(p => {
-        const tipo = p.tipo_propiedad || 'Otro';
+        const tipo = p.tipo_operacion_propiedad || 'Sin especificar';
         tiposCount[tipo] = (tiposCount[tipo] || 0) + 1;
       });
       setPropiedadesPorTipo(
@@ -449,7 +449,7 @@ const Dashboard = () => {
         <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-green-500/20">
           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <HomeIcon className="h-5 w-5 text-green-400" />
-            Propiedades por Tipo
+            Propiedades por Tipo de Operación
           </h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>

@@ -161,7 +161,7 @@ const CitaForm = () => {
   const validateAllFields = () => {
     const newErrors = {};
     
-    // Validar selects
+    // Validar selects (id_usuario_asesor es opcional, se asigna automáticamente)
     if (!formData.id_propiedad) {
       newErrors.id_propiedad = 'La propiedad es obligatoria';
     }
@@ -330,7 +330,7 @@ const CitaForm = () => {
                   className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
                   disabled={loading}
                 >
-                  <option value="">Asignar automáticamente</option>
+                  <option value="">Asignar automáticamente (asesor con menos citas)</option>
                   {usuarios.map(usuario => (
                     <option key={usuario.id_usuario} value={usuario.id_usuario}>
                       {usuario.nombre_usuario}
@@ -338,7 +338,7 @@ const CitaForm = () => {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gray-400">
-                  Si no se asigna, el sistema asignará automáticamente
+                  💡 La asignación automática selecciona al asesor con menos citas activas (excluyendo vencidas)
                 </p>
               </div>
 
@@ -373,13 +373,19 @@ const CitaForm = () => {
                   disabled={loading}
                 >
                   <option value="Programada">Programada</option>
+                  <option value="Confirmada">Confirmada</option>
                   <option value="Realizada">Realizada</option>
                   <option value="Cancelada">Cancelada</option>
                   <option value="Reprogramada">Reprogramada</option>
+                  <option value="No asistió">No asistió</option>
+                  <option value="Vencida">Vencida</option>
                 </select>
                 {errors.estado_cita && (
                   <p className="mt-1 text-sm text-red-400">{errors.estado_cita}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-400">
+                  💡 Las citas se marcan automáticamente como "Vencida" cuando su fecha pasa
+                </p>
               </div>
 
               {/* Lugar de Encuentro */}

@@ -12,6 +12,68 @@ from app.utils.dependencies import get_current_active_user
 router = APIRouter()
 
 
+def actualizar_citas_vencidas(supabase):
+    """
+    Actualiza automáticamente las citas programadas/confirmadas cuya fecha ya pasó a estado 'Vencida'.
+    """
+    try:
+        ahora = datetime.now(timezone.utc)
+        
+        # Buscar citas que deberían estar vencidas
+        citas_a_vencer = supabase.table("citavisita")\
+            .select("id_cita, fecha_visita_cita, estado_cita")\
+            .in_("estado_cita", ["Programada", "Confirmada", "Reprogramada"])\
+            .lt("fecha_visita_cita", ahora.isoformat())\
+            .execute()
+        
+        if citas_a_vencer.data:
+            # Actualizar cada cita a 'Vencida'
+            for cita in citas_a_vencer.data:
+                supabase.table("citavisita")\
+                    .update({"estado_cita": "Vencida"})\
+                    .eq("id_cita", cita["id_cita"])\
+                    .execute()
+            
+            print(f"✅ Se actualizaron {len(citas_a_vencer.data)} citas a estado 'Vencida'")
+    
+    except Exception as e:
+        print(f"Error al actualizar citas vencidas: {e}")
+
+
+def asignar_asesor_automaticamente(supabase):
+    """
+    Asigna automáticamente el asesor con menos citas activas (excluyendo vencidas).
+    """
+    try:
+        # Obtener todos los usuarios (asesores)
+        usuarios = supabase.table("usuario").select("id_usuario").execute()
+        if not usuarios.data:
+            return None
+        
+        # Obtener todas las citas activas (NO vencidas, canceladas ni realizadas)
+        estados_activos = ["Programada", "Confirmada", "Reprogramada"]
+        citas = supabase.table("citavisita").select("id_usuario_asesor").in_("estado_cita", estados_activos).execute()
+        
+        # Contar citas por asesor
+        conteo_por_asesor = {}
+        for usuario in usuarios.data:
+            id_usuario = usuario["id_usuario"]
+            conteo_por_asesor[id_usuario] = 0
+        
+        for cita in citas.data:
+            id_asesor = cita.get("id_usuario_asesor")
+            if id_asesor and id_asesor in conteo_por_asesor:
+                conteo_por_asesor[id_asesor] += 1
+        
+        # Encontrar el asesor con menos citas
+        asesor_con_menos_citas = min(conteo_por_asesor.items(), key=lambda x: x[1])
+        return asesor_con_menos_citas[0]
+    
+    except Exception as e:
+        print(f"Error al asignar asesor: {e}")
+        return None
+
+
 @router.post("/citas-visita/", response_model=CitaVisitaResponse, status_code=201)
 async def crear_cita_visita(
     cita: CitaVisitaCreate,
@@ -22,14 +84,15 @@ async def crear_cita_visita(
     
     - **id_propiedad**: ID de la propiedad a visitar
     - **ci_cliente**: CI del cliente interesado
-    - **id_usuario_asesor**: ID del asesor que guiará la visita
+    - **id_usuario_asesor**: ID del asesor (opcional, se asigna automáticamente si no se especifica)
     - **fecha_visita_cita**: Fecha y hora de la visita
     - **lugar_encuentro_cita**: Dónde se encontrarán (opcional)
     - **estado_cita**: Estado inicial (default: "Programada")
     - **nota_cita**: Notas adicionales (opcional)
     - **recordatorio_minutos_cita**: Minutos antes para recordatorio (default: 30)
     
-    💡 Estados: Programada → Confirmada → Realizada / Cancelada / No asistió
+    💡 Estados: Programada → Confirmada → Realizada / Cancelada / No asistió / Vencida
+    💡 Si no se especifica asesor, se asigna automáticamente al que tiene menos citas activas
     """
     supabase = get_supabase_client()
     
@@ -48,10 +111,18 @@ async def crear_cita_visita(
         if not cliente.data:
             raise HTTPException(status_code=404, detail="El cliente especificado no existe")
         
-        # Verificar que el asesor existe
-        asesor = supabase.table("usuario").select("id_usuario").eq("id_usuario", cita.id_usuario_asesor).execute()
-        if not asesor.data:
-            raise HTTPException(status_code=404, detail="El asesor especificado no existe")
+        # 🔹 ASIGNACIÓN AUTOMÁTICA DE ASESOR
+        if not cita.id_usuario_asesor:
+            # Asignar automáticamente al asesor con menos citas
+            asesor_id = asignar_asesor_automaticamente(supabase)
+            if not asesor_id:
+                raise HTTPException(status_code=500, detail="No se pudo asignar un asesor automáticamente")
+            cita.id_usuario_asesor = asesor_id
+        else:
+            # Verificar que el asesor especificado existe
+            asesor = supabase.table("usuario").select("id_usuario").eq("id_usuario", cita.id_usuario_asesor).execute()
+            if not asesor.data:
+                raise HTTPException(status_code=404, detail="El asesor especificado no existe")
         
         # Verificar que la fecha no sea en el pasado
         ahora = datetime.now(timezone.utc)
@@ -108,6 +179,9 @@ async def listar_citas_paginadas(
     supabase = get_supabase_client()
     
     try:
+        # 🔹 ACTUALIZAR CITAS VENCIDAS AUTOMÁTICAMENTE
+        actualizar_citas_vencidas(supabase)
+        
         # 🔹 PASO 1: Contar total
         count_query = supabase.table("citavisita").select("id_cita")
         

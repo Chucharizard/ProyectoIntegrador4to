@@ -26,7 +26,7 @@ class CitaVisitaCreate(CitaVisitaBase):
     """Schema para crear una cita de visita"""
     id_propiedad: str
     ci_cliente: str
-    id_usuario_asesor: str  # El broker elige qué asesor guiará la visita
+    id_usuario_asesor: Optional[str] = None  # Opcional: se asigna automáticamente al asesor con menos citas si no se especifica
 
 
 class CitaVisitaUpdate(BaseModel):

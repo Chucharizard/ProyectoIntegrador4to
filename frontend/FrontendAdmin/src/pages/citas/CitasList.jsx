@@ -98,8 +98,16 @@ const CitasList = () => {
       setPropiedades(propiedadesMap);
       setClientes(clientesMap);
       setUsuarios(usuariosMap);
-      setCitas(citasList); // ✅ Ya es array
-      calculateStats(citasList); // ✅ Pasar array
+      
+      // ✅ Ordenar citas por fecha descendente (más recientes primero)
+      const citasOrdenadas = citasList.sort((a, b) => {
+        const fechaA = new Date(a.fecha_visita_cita);
+        const fechaB = new Date(b.fecha_visita_cita);
+        return fechaB - fechaA; // Descendente
+      });
+      
+      setCitas(citasOrdenadas);
+      calculateStats(citasOrdenadas);
 
     } catch (error) {
       if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
