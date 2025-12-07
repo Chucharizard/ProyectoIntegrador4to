@@ -200,6 +200,12 @@ const Sidebar = () => {
       icon: MegaphoneIcon,
       roles: [1, 2],
     },
+    {
+      name: 'Ganancias',
+      path: '/ganancias',
+      icon: CurrencyDollarIcon,
+      roles: [1],
+    },
   ];
 
   const filteredMenu = menuItems.filter((item) =>

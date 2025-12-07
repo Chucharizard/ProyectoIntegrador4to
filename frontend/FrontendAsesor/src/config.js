@@ -10,7 +10,7 @@ export const config = {
 
   API_URL: __DEV__ 
     ? 'http://192.168.76.146:8000/api'  // IP WiFi de tu PC para probar en teléfono
-    : 'https://192.168.43.246:8000/api',
+    : 'https://192.168.0.101:8000/api',
 
   // Configuración de imágenes
   IMAGE_QUALITY: 0.8,

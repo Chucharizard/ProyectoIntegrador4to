@@ -1,11 +1,105 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from datetime import date
+from decimal import Decimal
 from app.schemas.contrato_operacion import ContratoOperacionCreate, ContratoOperacionUpdate, ContratoOperacionResponse
 from app.database import get_supabase_client
 from app.utils.dependencies import get_current_active_user
 
 router = APIRouter()
+
+
+async def generar_ganancias_empleados(supabase, id_propiedad: str, id_usuario_colocador: str, precio_cierre: float, fecha_cierre: date):
+    """
+    Genera los registros de ganancia para el asesor captador y colocador cuando un contrato se activa.
+    
+    Args:
+        supabase: Cliente de Supabase
+        id_propiedad: ID de la propiedad
+        id_usuario_colocador: ID del usuario que colocó (cerró la operación)
+        precio_cierre: Precio final del contrato
+        fecha_cierre: Fecha del cierre
+    """
+    try:
+        # Obtener datos de la propiedad (incluye id_usuario_captador y porcentajes)
+        propiedad = supabase.table("propiedad").select(
+            "id_usuario_captador, porcentaje_captacion_propiedad, porcentaje_colocacion_propiedad, tipo_operacion_propiedad"
+        ).eq("id_propiedad", id_propiedad).execute()
+        
+        if not propiedad.data:
+            raise HTTPException(status_code=404, detail="Propiedad no encontrada")
+        
+        prop_data = propiedad.data[0]
+        id_usuario_captador = prop_data.get("id_usuario_captador")
+        porcentaje_captacion = float(prop_data.get("porcentaje_captacion_propiedad") or 0)
+        porcentaje_colocacion = float(prop_data.get("porcentaje_colocacion_propiedad") or 0)
+        tipo_operacion = prop_data.get("tipo_operacion_propiedad")
+        
+        # Verificar que existan los porcentajes y usuarios
+        if not id_usuario_captador:
+            raise HTTPException(status_code=400, detail="La propiedad no tiene usuario captador asignado")
+        
+        if porcentaje_captacion <= 0 or porcentaje_colocacion <= 0:
+            raise HTTPException(status_code=400, detail="Los porcentajes de captación y colocación deben ser mayores a 0")
+        
+        # Calcular ganancias
+        dinero_captacion = (precio_cierre * porcentaje_captacion) / 100
+        dinero_colocacion = (precio_cierre * porcentaje_colocacion) / 100
+        
+        # Verificar si ya existen ganancias para evitar duplicados
+        ganancias_existentes = supabase.table("gananciaempleado").select("id_ganancia").eq(
+            "id_propiedad", id_propiedad
+        ).eq("esta_concretado_ganancia", False).execute()
+        
+        if ganancias_existentes.data and len(ganancias_existentes.data) > 0:
+            # Ya existen ganancias pendientes, no crear duplicados
+            return
+        
+        # Preparar registros de ganancia
+        ganancias = []
+        
+        # Ganancia del captador
+        ganancia_captador = {
+            "id_propiedad": id_propiedad,
+            "id_usuario_empleado": id_usuario_captador,
+            "tipo_operacion_ganancia": "Captación",
+            "porcentaje_ganado_ganancia": porcentaje_captacion,
+            "dinero_ganado_ganancia": dinero_captacion,
+            "esta_concretado_ganancia": False,
+            "fecha_cierre_ganancia": fecha_cierre.isoformat() if isinstance(fecha_cierre, date) else fecha_cierre
+        }
+        ganancias.append(ganancia_captador)
+        
+        # Ganancia del colocador (solo si es diferente al captador)
+        if id_usuario_colocador != id_usuario_captador:
+            ganancia_colocador = {
+                "id_propiedad": id_propiedad,
+                "id_usuario_empleado": id_usuario_colocador,
+                "tipo_operacion_ganancia": "Colocación",
+                "porcentaje_ganado_ganancia": porcentaje_colocacion,
+                "dinero_ganado_ganancia": dinero_colocacion,
+                "esta_concretado_ganancia": False,
+                "fecha_cierre_ganancia": fecha_cierre.isoformat() if isinstance(fecha_cierre, date) else fecha_cierre
+            }
+            ganancias.append(ganancia_colocador)
+        else:
+            # Si es la misma persona, crear una sola ganancia con "Ambas"
+            ganancias[0]["tipo_operacion_ganancia"] = "Ambas"
+            ganancias[0]["porcentaje_ganado_ganancia"] = porcentaje_captacion + porcentaje_colocacion
+            ganancias[0]["dinero_ganado_ganancia"] = dinero_captacion + dinero_colocacion
+        
+        # Insertar ganancias
+        result = supabase.table("gananciaempleado").insert(ganancias).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Error al generar ganancias de empleados")
+        
+        return result.data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar ganancias: {str(e)}")
 
 
 @router.post("/contratos/", response_model=ContratoOperacionResponse, status_code=201)
@@ -84,13 +178,22 @@ async def crear_contrato(
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al crear el contrato")
         
-        # Si el contrato está activo, actualizar la propiedad a cerrada
+        # Si el contrato está activo, actualizar la propiedad a cerrada y generar ganancias
         if contrato.estado_contrato == "Activo":
             supabase.table("propiedad").update({
                 "estado_propiedad": "Cerrada",
                 "fecha_cierre_propiedad": date.today().isoformat(),
                 "id_usuario_colocador": contrato.id_usuario_colocador
             }).eq("id_propiedad", contrato.id_propiedad).execute()
+            
+            # Generar ganancias para captador y colocador
+            await generar_ganancias_empleados(
+                supabase=supabase,
+                id_propiedad=contrato.id_propiedad,
+                id_usuario_colocador=contrato.id_usuario_colocador,
+                precio_cierre=float(contrato.precio_cierre_contrato),
+                fecha_cierre=contrato.fecha_cierre_contrato or date.today()
+            )
         
         return result.data[0]
     
@@ -204,11 +307,35 @@ async def actualizar_contrato(
             if field in contrato_data and contrato_data[field]:
                 contrato_data[field] = contrato_data[field].isoformat()
         
+        # Detectar si el estado cambió a "Activo"
+        estado_anterior = contrato_actual.data[0].get("estado_contrato")
+        estado_nuevo = contrato_data.get("estado_contrato")
+        
         # Actualizar
         result = supabase.table("contratooperacion").update(contrato_data).eq("id_contrato_operacion", id_contrato).execute()
         
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al actualizar el contrato")
+        
+        # Si el contrato cambió a estado "Activo", generar ganancias y cerrar propiedad
+        if estado_nuevo == "Activo" and estado_anterior != "Activo":
+            contrato_actualizado = result.data[0]
+            
+            # Cerrar la propiedad
+            supabase.table("propiedad").update({
+                "estado_propiedad": "Cerrada",
+                "fecha_cierre_propiedad": date.today().isoformat(),
+                "id_usuario_colocador": contrato_actualizado.get("id_usuario_colocador")
+            }).eq("id_propiedad", contrato_actualizado.get("id_propiedad")).execute()
+            
+            # Generar ganancias
+            await generar_ganancias_empleados(
+                supabase=supabase,
+                id_propiedad=contrato_actualizado.get("id_propiedad"),
+                id_usuario_colocador=contrato_actualizado.get("id_usuario_colocador"),
+                precio_cierre=float(contrato_actualizado.get("precio_cierre_contrato")),
+                fecha_cierre=contrato_actualizado.get("fecha_cierre_contrato") or date.today()
+            )
         
         return result.data[0]
     

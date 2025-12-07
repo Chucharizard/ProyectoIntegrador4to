@@ -7,7 +7,7 @@
 export const REGEX = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE: /^[0-9]{7,20}$/,
-  CI: /^[0-9]{5,20}$/,
+  CI: /^[0-9]{5,9}$/,
   ALPHANUMERIC: /^[a-zA-Z0-9\s]*$/,
   LETTERS_ONLY: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/,
   DECIMAL: /^\d+(\.\d{1,2})?$/,
@@ -17,7 +17,7 @@ export const REGEX = {
 // Límites de caracteres según la base de datos
 export const MAX_LENGTH = {
   // Persona
-  CI: 20,
+  CI: 9,
   NOMBRES: 120,
   APELLIDOS: 120,
   TELEFONO: 20,
@@ -174,7 +174,7 @@ export const validateCI = (ci, required = true) => {
   }
   
   if (ci && !REGEX.CI.test(ci)) {
-    return 'El CI debe contener solo números (5-20 dígitos)';
+    return 'El CI debe contener solo números (5-9 dígitos)';
   }
   
   if (ci && ci.length > MAX_LENGTH.CI) {

@@ -409,16 +409,17 @@ const PropiedadForm = () => {
                 <div>
                   <label htmlFor="id_usuario_captador" className="block text-sm font-medium text-green-400 mb-2">
                     <UserIcon className="h-4 w-4 inline mr-1" />
-                    Usuario Captador
+                    Usuario Captador <span className="text-red-400">*</span>
                   </label>
                   <select
                     id="id_usuario_captador"
                     name="id_usuario_captador"
                     value={formData.id_usuario_captador}
                     onChange={handleChange}
+                    required
                     className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
                   >
-                    <option value="">Sin asignar</option>
+                    <option value="">Seleccionar usuario</option>
                     {usuarios.map(usuario => (
                       <option key={usuario.id_usuario} value={usuario.id_usuario}>
                         {getUsuarioNombreCompleto(usuario.id_usuario)} - {usuario.nombre_usuario}
@@ -433,13 +434,14 @@ const PropiedadForm = () => {
                 {/* Descripción */}
                 <div>
                   <label htmlFor="descripcion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
-                    Descripción
+                    Descripción <span className="text-red-400">*</span>
                   </label>
                   <textarea
                     id="descripcion_propiedad"
                     name="descripcion_propiedad"
                     value={formData.descripcion_propiedad}
                     onChange={handleChange}
+                    required
                     maxLength={MAX_LENGTH.DESCRIPCION_PROPIEDAD}
                     rows="4"
                     className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all resize-none ${
@@ -471,7 +473,7 @@ const PropiedadForm = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="precio_publicado_propiedad" className="block text-sm font-medium text-green-400 mb-2">
-                    Precio (Bs.)
+                    Precio (Bs.) <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -482,6 +484,7 @@ const PropiedadForm = () => {
                     name="precio_publicado_propiedad"
                     value={formData.precio_publicado_propiedad}
                     onChange={handleChange}
+                    required
                     className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
                       errors.precio_publicado_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
                     }`}
@@ -494,7 +497,7 @@ const PropiedadForm = () => {
 
                 <div>
                   <label htmlFor="superficie_propiedad" className="block text-sm font-medium text-green-400 mb-2">
-                    Superficie (m²)
+                    Superficie (m²) <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -505,6 +508,7 @@ const PropiedadForm = () => {
                     name="superficie_propiedad"
                     value={formData.superficie_propiedad}
                     onChange={handleChange}
+                    required
                     className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
                       errors.superficie_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
                     }`}
@@ -517,7 +521,7 @@ const PropiedadForm = () => {
 
                 <div>
                   <label htmlFor="porcentaje_captacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
-                    % Captación
+                    % Captación <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -528,6 +532,7 @@ const PropiedadForm = () => {
                     name="porcentaje_captacion_propiedad"
                     value={formData.porcentaje_captacion_propiedad}
                     onChange={handleChange}
+                    required
                     className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
                       errors.porcentaje_captacion_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
                     }`}
@@ -540,7 +545,7 @@ const PropiedadForm = () => {
 
                 <div>
                   <label htmlFor="porcentaje_colocacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
-                    % Colocación
+                    % Colocación <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -551,6 +556,7 @@ const PropiedadForm = () => {
                     name="porcentaje_colocacion_propiedad"
                     value={formData.porcentaje_colocacion_propiedad}
                     onChange={handleChange}
+                    required
                     className={`w-full px-4 py-2.5 bg-gray-900/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:ring-2 transition-all ${
                       errors.porcentaje_colocacion_propiedad ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500/50' : 'border-gray-700 focus:ring-green-500/50 focus:border-green-500/50'
                     }`}
@@ -731,7 +737,7 @@ const PropiedadForm = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="fecha_captacion_propiedad" className="block text-sm font-medium text-green-400 mb-2">
-                    Fecha Captación
+                    Fecha Captación <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="date"
@@ -739,6 +745,7 @@ const PropiedadForm = () => {
                     name="fecha_captacion_propiedad"
                     value={formData.fecha_captacion_propiedad}
                     onChange={handleChange}
+                    required
                     className="w-full px-4 py-2.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
                   />
                 </div>

@@ -25,6 +25,7 @@ import PagoForm from './pages/pagos/PagoForm';
 import PublicacionesPage from './pages/publicaciones/PublicacionesPage';
 import NuevaPublicacionPage from './pages/publicaciones/NuevaPublicacionPage';
 import EditarPublicacionPage from './pages/publicaciones/EditarPublicacionPage';
+import GananciasEmpleadoList from './pages/ganancias/GananciasEmpleadoList';
 
 function App() {
   return (
@@ -125,6 +126,9 @@ function App() {
                     <Route path="/publicaciones" element={<PublicacionesPage />} />
                     <Route path="/publicaciones/nueva" element={<NuevaPublicacionPage />} />
                     <Route path="/publicaciones/editar/:id" element={<EditarPublicacionPage />} />
+                    
+                    {/* Ganancias Empleados */}
+                    <Route path="/ganancias" element={<GananciasEmpleadoList />} />
                     
                     {/* Visitas */}
                     <Route 
