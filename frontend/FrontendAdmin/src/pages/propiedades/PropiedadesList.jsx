@@ -9,7 +9,8 @@ import {
   HomeIcon,
   CurrencyDollarIcon,
   CheckCircleIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -247,7 +248,14 @@ const PropiedadesList = () => {
     {
       header: 'Acciones',
       render: (row) => (
-        <div className="flex gap-3">
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/propiedades/${row.id_propiedad}`)}
+            className="text-green-400 hover:text-green-300 transition-colors p-1 hover:bg-green-500/10 rounded"
+            title="Ver Detalle y Documentos"
+          >
+            <EyeIcon className="h-5 w-5" />
+          </button>
           <button
             onClick={() => navigate(`/propiedades/editar/${row.id_propiedad}`)}
             className="text-blue-400 hover:text-blue-300 transition-colors p-1 hover:bg-blue-500/10 rounded"

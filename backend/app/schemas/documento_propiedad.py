@@ -7,6 +7,7 @@ class DocumentoPropiedadBase(BaseModel):
     """Schema base para DocumentoPropiedad"""
     tipo_documento: Optional[str] = None  # "Título", "Plano", "Folio Real", "Contrato", etc.
     ruta_archivo_documento: str
+    nombre_archivo_original: Optional[str] = None
     observaciones_documento: Optional[str] = None
 
 

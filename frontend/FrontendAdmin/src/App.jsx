@@ -15,6 +15,7 @@ import PropietariosList from './pages/propietarios/PropietariosList';
 import PropietarioForm from './pages/propietarios/PropietarioForm';
 import PropiedadesList from './pages/propiedades/PropiedadesList';
 import PropiedadForm from './pages/propiedades/PropiedadForm';
+import PropiedadDetail from './pages/propiedades/PropiedadDetail';
 import CitasList from './pages/citas/CitasList';
 import CitaForm from './pages/citas/CitaForm';
 import ContratosList from './pages/contratos/ContratosList';
@@ -26,6 +27,7 @@ import PublicacionesPage from './pages/publicaciones/PublicacionesPage';
 import NuevaPublicacionPage from './pages/publicaciones/NuevaPublicacionPage';
 import EditarPublicacionPage from './pages/publicaciones/EditarPublicacionPage';
 import GananciasEmpleadoList from './pages/ganancias/GananciasEmpleadoList';
+import DesempenoList from './pages/desempeno/DesempenoList';
 
 function App() {
   return (
@@ -104,6 +106,7 @@ function App() {
                     {/* Propiedades */}
                     <Route path="/propiedades" element={<PropiedadesList />} />
                     <Route path="/propiedades/nuevo" element={<PropiedadForm />} />
+                    <Route path="/propiedades/:id" element={<PropiedadDetail />} />
                     <Route path="/propiedades/editar/:id" element={<PropiedadForm />} />
                     
                     {/* Citas/Visitas */}
@@ -129,6 +132,9 @@ function App() {
                     
                     {/* Ganancias Empleados */}
                     <Route path="/ganancias" element={<GananciasEmpleadoList />} />
+                    
+                    {/* Desempeño Asesores */}
+                    <Route path="/desempeno" element={<DesempenoList />} />
                     
                     {/* Visitas */}
                     <Route 

@@ -1,6 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
-from app.schemas.desempeno_asesor import DesempenoAsesorCreate, DesempenoAsesorUpdate, DesempenoAsesorResponse
+from datetime import datetime, date
+from app.schemas.desempeno_asesor import (
+    DesempenoAsesorCreate, 
+    DesempenoAsesorUpdate, 
+    DesempenoAsesorResponse,
+    DesempenoAsesorGenerar
+)
 from app.database import get_supabase_client
 from app.utils.dependencies import get_current_active_user
 
@@ -16,14 +22,14 @@ async def registrar_desempeno(
     Registra el desempeño de un asesor para un periodo específico.
     
     - **id_usuario_asesor**: ID del asesor
-    - **periodo_desempeno**: Periodo (Ej: "2025-01", "2025-Q1", "2025")
+    - **periodo_desempeno**: Periodo (Ej: "2025-01" mensual, "2025" anual)
     - **captaciones_desempeno**: Número de propiedades captadas
-    - **publicaciones_desempeno**: Número de propiedades publicadas
+    - **colocaciones_desempeno**: Número de contratos cerrados
     - **visitas_agendadas_desempeno**: Número de visitas agendadas
-    - **operaciones_cerradas_desempeno**: Número de operaciones cerradas
-    - **tiempo_promedio_cierre_dias_desempeno**: Tiempo promedio de cierre en días
+    - **operaciones_cerradas_desempeno**: No usado actualmente
+    - **tiempo_promedio_cierre_dias_desempeno**: No usado actualmente
     
-    💡 Formatos de periodo válidos: YYYY-MM, YYYY-Q1, YYYY
+    💡 Formatos de periodo válidos: YYYY-MM (mensual), YYYY (anual)
     """
     supabase = get_supabase_client()
     
@@ -53,6 +59,122 @@ async def registrar_desempeno(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+
+
+@router.post("/desempeno/generar", response_model=DesempenoAsesorResponse, status_code=201)
+async def generar_desempeno_automatico(
+    data: DesempenoAsesorGenerar,
+    current_user = Depends(get_current_active_user)
+):
+    """
+    Genera un análisis de desempeño automáticamente basado en datos reales del sistema.
+    
+    - **id_usuario_asesor**: ID del asesor a analizar
+    - **tipo_periodo**: 'mensual' o 'anual'
+    - **anio**: Año a analizar (2020-2030)
+    - **mes**: Mes a analizar (1-12, solo para tipo_periodo='mensual')
+    
+    📊 Calcula automáticamente:
+    - **captaciones_desempeno**: Propiedades captadas (propiedad.id_usuario_captador)
+    - **colocaciones_desempeno**: Contratos cerrados (contratooperacion.id_usuario_colocador con estado='Activo')
+    - **visitas_agendadas_desempeno**: Citas asignadas (citavisita.id_usuario_asesor)
+    
+    ⚠️ Para periodos mensuales, solo se permiten meses pasados.
+    Para periodos anuales, se permite el año actual (se actualizará si ya existe).
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        # Verificar que el asesor existe
+        asesor = supabase.table("usuario").select("id_usuario, nombre_usuario").eq("id_usuario", data.id_usuario_asesor).execute()
+        if not asesor.data:
+            raise HTTPException(status_code=404, detail="El asesor especificado no existe")
+        
+        # Validar periodo mensual
+        if data.tipo_periodo == 'mensual':
+            if not data.mes:
+                raise HTTPException(status_code=400, detail="El mes es requerido para periodo mensual")
+            
+            # Verificar que el mes no sea futuro
+            hoy = datetime.now()
+            fecha_periodo = datetime(data.anio, data.mes, 1)
+            if fecha_periodo >= datetime(hoy.year, hoy.month, 1):
+                raise HTTPException(status_code=400, detail="Solo se pueden analizar meses pasados")
+        
+        # Construir periodo_desempeno
+        if data.tipo_periodo == 'mensual':
+            periodo = f"{data.anio}-{data.mes:02d}"
+            fecha_inicio = f"{data.anio}-{data.mes:02d}-01"
+            # Último día del mes
+            if data.mes == 12:
+                fecha_fin = f"{data.anio + 1}-01-01"
+            else:
+                fecha_fin = f"{data.anio}-{data.mes + 1:02d}-01"
+        else:  # anual
+            periodo = str(data.anio)
+            fecha_inicio = f"{data.anio}-01-01"
+            fecha_fin = f"{data.anio + 1}-01-01"
+        
+        # 1. Calcular captaciones (propiedades captadas)
+        captaciones = supabase.table("propiedad").select("id_propiedad", count="exact").eq(
+            "id_usuario_captador", data.id_usuario_asesor
+        ).gte("fecha_captacion_propiedad", fecha_inicio).lt("fecha_captacion_propiedad", fecha_fin).execute()
+        
+        captaciones_count = captaciones.count or 0
+        
+        # 2. Calcular colocaciones (contratos cerrados)
+        colocaciones = supabase.table("contratooperacion").select("id_contrato_operacion", count="exact").eq(
+            "id_usuario_colocador", data.id_usuario_asesor
+        ).eq("estado_contrato", "Activo").gte("fecha_cierre_contrato", fecha_inicio).lt("fecha_cierre_contrato", fecha_fin).execute()
+        
+        colocaciones_count = colocaciones.count or 0
+        
+        # 3. Calcular visitas agendadas
+        visitas = supabase.table("citavisita").select("id_cita", count="exact").eq(
+            "id_usuario_asesor", data.id_usuario_asesor
+        ).gte("fecha_visita_cita", fecha_inicio).lt("fecha_visita_cita", fecha_fin).execute()
+        
+        visitas_count = visitas.count or 0
+        
+        # Verificar si ya existe el registro para este periodo
+        existing = supabase.table("desempenoasesor").select("id_desempeno").eq(
+            "id_usuario_asesor", data.id_usuario_asesor
+        ).eq("periodo_desempeno", periodo).execute()
+        
+        desempeno_data = {
+            "id_usuario_asesor": data.id_usuario_asesor,
+            "periodo_desempeno": periodo,
+            "captaciones_desempeno": captaciones_count,
+            "colocaciones_desempeno": colocaciones_count,
+            "visitas_agendadas_desempeno": visitas_count,
+            "operaciones_cerradas_desempeno": 0,  # No usado
+            "tiempo_promedio_cierre_dias_desempeno": 0  # No usado
+        }
+        
+        if existing.data:
+            # Actualizar registro existente (permitido para periodos anuales del año actual)
+            if data.tipo_periodo == 'anual' and data.anio == datetime.now().year:
+                result = supabase.table("desempenoasesor").update(desempeno_data).eq(
+                    "id_desempeno", existing.data[0]["id_desempeno"]
+                ).execute()
+            else:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Ya existe un registro de desempeño para este periodo. Solo se puede actualizar el año actual."
+                )
+        else:
+            # Crear nuevo registro
+            result = supabase.table("desempenoasesor").insert(desempeno_data).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Error al generar el desempeño")
+        
+        return result.data[0]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el desempeño: {str(e)}")
 
 
 @router.get("/desempeno/", response_model=List[DesempenoAsesorResponse])
@@ -244,7 +366,7 @@ async def historico_asesor(
         
         # Calcular totales
         total_captaciones = sum(d["captaciones_desempeno"] for d in desempenos.data)
-        total_publicaciones = sum(d["publicaciones_desempeno"] for d in desempenos.data)
+        total_colocaciones = sum(d.get("colocaciones_desempeno", d.get("publicaciones_desempeno", 0)) for d in desempenos.data)
         total_visitas = sum(d["visitas_agendadas_desempeno"] for d in desempenos.data)
         total_operaciones = sum(d["operaciones_cerradas_desempeno"] for d in desempenos.data)
         
@@ -253,7 +375,7 @@ async def historico_asesor(
             "total_periodos": len(desempenos.data),
             "resumen_total": {
                 "captaciones": total_captaciones,
-                "publicaciones": total_publicaciones,
+                "colocaciones": total_colocaciones,
                 "visitas": total_visitas,
                 "operaciones_cerradas": total_operaciones
             },
