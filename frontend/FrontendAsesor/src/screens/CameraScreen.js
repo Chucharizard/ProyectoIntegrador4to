@@ -252,17 +252,17 @@ export default function CameraScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#56b5a1ff',
   },
   header: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#a6fff6ff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   backButton: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#0b0141ff',
     marginBottom: 10,
   },
   title: {
@@ -373,20 +373,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonPrimary: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#004a31ff',
   },
   buttonSecondary: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(86, 0, 162, 1)',
     borderWidth: 1,
     borderColor: '#007AFF',
   },
   buttonText: {
-    color: '#fff',
+    color: '#ffffffff',
     fontSize: 16,
     fontWeight: '600',
   },
   buttonSecondaryText: {
-    color: '#007AFF',
+    color: '#ffffffff',
     fontSize: 16,
     fontWeight: '600',
   },

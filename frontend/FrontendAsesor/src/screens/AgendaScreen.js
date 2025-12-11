@@ -8,10 +8,12 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
-  Platform
+  Platform,
+  Animated
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import citaService from '../services/citaService';
+import pollingService from '../services/pollingService';
 
 const AgendaScreen = () => {
   const navigation = useNavigation();
@@ -19,13 +21,28 @@ const AgendaScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState('Programada');
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const [newCitasCount, setNewCitasCount] = useState(0);
+  const bannerOpacity = useState(new Animated.Value(0))[0];
 
-  const estados = ['Todas', 'Programada', 'Confirmada', 'Realizada', 'Cancelada'];
+  const estados = ['Todas', 'Programada', 'Confirmada', 'Realizada', 'Cancelada', 'Vencida'];
 
   const loadCitas = async () => {
     try {
       setLoading(true);
       const filters = {};
+      
+      // Si filtra por Programada, incluir también Reprogramada
+      if (filtroEstado === 'Programada') {
+        const allData = await citaService.getMisCitas({});
+        const citasFiltradas = allData.filter(
+          cita => cita.estado_cita === 'Programada' || cita.estado_cita === 'Reprogramada'
+        );
+        setCitas(citasFiltradas);
+        setLoading(false);
+        return;
+      }
+      
       if (filtroEstado !== 'Todas') {
         filters.estado = filtroEstado;
       }
@@ -46,9 +63,42 @@ const AgendaScreen = () => {
     setRefreshing(false);
   };
 
+  // Callback cuando se detectan citas nuevas
+  const handleNewCitas = (citasNuevas) => {
+    setNewCitasCount(citasNuevas.length);
+    setBannerVisible(true);
+    
+    // Animar entrada del banner
+    Animated.timing(bannerOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    
+    // Ocultar después de 5 segundos
+    setTimeout(() => {
+      Animated.timing(bannerOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setBannerVisible(false));
+    }, 5000);
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadCitas();
+      
+      // Marcar como revisado al entrar
+      pollingService.markAsChecked();
+      
+      // Iniciar polling
+      pollingService.startPolling(handleNewCitas);
+      
+      // Detener polling al salir
+      return () => {
+        pollingService.stopPolling();
+      };
     }, [filtroEstado])
   );
 
@@ -162,6 +212,35 @@ const AgendaScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Banner de citas nuevas */}
+      {bannerVisible && (
+        <Animated.View 
+          style={[
+            styles.newCitasBanner,
+            { opacity: bannerOpacity }
+          ]}
+        >
+          <Text style={styles.bannerIcon}>🔔</Text>
+          <View style={styles.bannerTextContainer}>
+            <Text style={styles.bannerTitle}>
+              {newCitasCount === 1 ? '¡Nueva cita!' : `¡${newCitasCount} citas nuevas!`}
+            </Text>
+            <Text style={styles.bannerSubtitle}>
+              Toca para actualizar la lista
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.bannerButton}
+            onPress={() => {
+              loadCitas();
+              setBannerVisible(false);
+            }}
+          >
+            <Text style={styles.bannerButtonText}>Ver</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       {/* Header con filtros */}
       <View style={styles.header}>
         <Text style={styles.title}>📅 Mi Agenda</Text>
@@ -383,6 +462,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#9ca3af',
     textAlign: 'center',
+  },
+  // Estilos del banner de citas nuevas
+  newCitasBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 16,
+    zIndex: 1000,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  bannerIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  bannerTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  bannerSubtitle: {
+    color: '#d1fae5',
+    fontSize: 13,
+  },
+  bannerButton: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  bannerButtonText: {
+    color: '#10b981',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

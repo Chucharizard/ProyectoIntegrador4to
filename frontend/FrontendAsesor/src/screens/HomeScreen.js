@@ -22,7 +22,7 @@ export default function HomeScreen({ navigation }) {
       
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Bienvenido</Text>
+          <Text style={styles.title}>BIENVENIDO</Text>
           <Text style={styles.userName}>{user?.nombre_usuario || 'Asesor'}</Text>
         </View>
         <TouchableOpacity
@@ -47,13 +47,11 @@ export default function HomeScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate('Camera')}
+          onPress={() => navigation.navigate('BuscarPropiedades')}
         >
-          <Text style={styles.cardIcon}>📸</Text>
-          <Text style={styles.cardTitle}>Subir Fotos</Text>
-          <Text style={styles.cardSubtitle}>
-            Captura y sube fotos de propiedades
-          </Text>
+          <Text style={styles.cardIcon}>🧭</Text>
+          <Text style={styles.cardTitle}>Buscar ruta</Text>
+          <Text style={styles.cardSubtitle}>Encuentra una propiedad y ve la ruta</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -78,14 +76,14 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#04432eff',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#96ffe8ff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -93,7 +91,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#04432eff',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -103,7 +101,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#04432eff',
   },
   userName: {
     fontSize: 16,
@@ -115,7 +113,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#96ffe8ff',
     borderRadius: 12,
     padding: 20,
     marginBottom: 15,
@@ -142,14 +140,14 @@ const styles = StyleSheet.create({
   logoutButton: {
     margin: 20,
     padding: 15,
-    backgroundColor: '#fff',
+    backgroundColor: '#96ffe8ff',
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ff3b30',
+    borderColor: '#009685ff',
   },
   logoutText: {
-    color: '#ff3b30',
+    color: '#00134fff',
     fontSize: 16,
     fontWeight: '600',
   },

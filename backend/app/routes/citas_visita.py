@@ -9,6 +9,14 @@ from app.schemas.pagination import PaginatedResponse, create_paginated_response
 from app.database import get_supabase_client
 from app.utils.dependencies import get_current_active_user
 
+# Importar notificaciones de forma segura
+try:
+    from app.utils.notificaciones import notificar_cita_nueva, notificar_cita_reprogramada
+    NOTIFICACIONES_DISPONIBLES = True
+except Exception as e:
+    print(f"⚠️ No se pudieron cargar las notificaciones: {e}")
+    NOTIFICACIONES_DISPONIBLES = False
+
 router = APIRouter()
 
 
@@ -141,6 +149,14 @@ async def crear_cita_visita(
         
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al crear la cita")
+        
+        # 🔔 Enviar notificación al asesor asignado
+        if NOTIFICACIONES_DISPONIBLES:
+            try:
+                cita_creada = result.data[0]
+                notificar_cita_nueva(supabase, cita_creada["id_cita"], cita_creada["id_usuario_asesor"])
+            except Exception as e:
+                print(f"⚠️ Error al enviar notificación: {e}")
         
         return result.data[0]
     
@@ -400,18 +416,35 @@ async def actualizar_cita(
         if not existing.data:
             raise HTTPException(status_code=404, detail="Cita no encontrada")
         
+        cita_original = existing.data[0]
         update_data = cita.model_dump(exclude_unset=True)
         
         if not update_data:
             raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
         
+        # 🔄 Detectar si es reprogramación (cambio de fecha o estado a Reprogramada)
+        es_reprogramacion = False
         if "fecha_visita_cita" in update_data and update_data["fecha_visita_cita"]:
             update_data["fecha_visita_cita"] = update_data["fecha_visita_cita"].isoformat()
+            # Comparar fechas (solo si cambió)
+            if update_data["fecha_visita_cita"] != cita_original.get("fecha_visita_cita"):
+                es_reprogramacion = True
+        
+        if update_data.get("estado_cita") == "Reprogramada":
+            es_reprogramacion = True
         
         result = supabase.table("citavisita").update(update_data).eq("id_cita", id_cita).execute()
         
         if not result.data:
             raise HTTPException(status_code=500, detail="Error al actualizar la cita")
+        
+        # 🔔 Enviar notificación si fue reprogramada
+        if NOTIFICACIONES_DISPONIBLES and es_reprogramacion:
+            try:
+                cita_actualizada = result.data[0]
+                notificar_cita_reprogramada(supabase, id_cita, cita_actualizada["id_usuario_asesor"])
+            except Exception as e:
+                print(f"⚠️ Error al enviar notificación de reprogramación: {e}")
         
         return result.data[0]
     

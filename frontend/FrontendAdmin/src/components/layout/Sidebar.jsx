@@ -153,12 +153,12 @@ const Sidebar = () => {
       icon: ShieldCheckIcon,
       roles: [1],
     },
-    {
+    /*{
       name: 'Roles',
       path: '/roles',
       icon: ShieldCheckIcon,
       roles: [1],
-    },
+    },*/
     {
       name: 'Clientes',
       path: '/clientes',

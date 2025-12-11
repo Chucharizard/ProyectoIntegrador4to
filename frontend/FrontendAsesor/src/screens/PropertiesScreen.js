@@ -60,7 +60,7 @@ export default function PropertiesScreen({ navigation }) {
             tituloPropiedad: item.titulo_propiedad
           })}
         >
-          <Text style={styles.actionText}>�️ Ver galería</Text>
+          <Text style={styles.actionText}>🖼️ Ver galería</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.actionButtonPrimary]}
@@ -115,7 +115,7 @@ export default function PropertiesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#027752ff',
   },
   centerContainer: {
     flex: 1,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#74ffe1ff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#71ffcbff',
     borderRadius: 12,
     padding: 15,
     marginBottom: 12,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#64077bff',
     alignItems: 'center',
   },
   actionButtonPrimary: {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: '#333',
+    color: '#ffffffff',
     fontWeight: '600',
   },
   actionTextPrimary: {

@@ -357,3 +357,57 @@ async def obtener_usuario_actual(current_user: dict = Depends(get_current_active
     print(f"✅ [DEBUG /me] user_data sin contraseña, keys: {list(user_data.keys())}")
     print(f"✅ [DEBUG /me] ========== Retornando ==========")
     return user_data
+
+
+@router.patch("/usuarios/me/push-token")
+async def actualizar_push_token(
+    data: dict,
+    current_user: dict = Depends(get_current_active_user)
+):
+    """
+    Actualiza el token de notificaciones push del usuario actual.
+    
+    Usado por la app móvil para registrar el dispositivo y recibir notificaciones.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        expo_push_token = data.get("expo_push_token")
+        
+        if not expo_push_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El token de push es requerido"
+            )
+        
+        # Validar formato del token (debe empezar con ExponentPushToken[)
+        if not expo_push_token.startswith("ExponentPushToken["):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de token inválido"
+            )
+        
+        # Actualizar token en la base de datos
+        result = supabase.table("usuario")\
+            .update({"expo_push_token": expo_push_token})\
+            .eq("id_usuario", current_user["id_usuario"])\
+            .execute()
+        
+        if not result.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al actualizar el token"
+            )
+        
+        return {
+            "success": True,
+            "message": "Token de notificaciones actualizado correctamente"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar token: {str(e)}"
+        )

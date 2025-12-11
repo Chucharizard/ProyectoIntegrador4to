@@ -31,6 +31,9 @@ const CitaForm = () => {
   const [propiedades, setPropiedades] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  
+  // Estado para rastrear la fecha original al editar
+  const [fechaOriginal, setFechaOriginal] = useState(null);
 
   const [formData, setFormData] = useState({
     id_propiedad: '',
@@ -100,6 +103,9 @@ const CitaForm = () => {
         nota_cita: data.nota_cita || '',
         recordatorio_minutos_cita: data.recordatorio_minutos_cita || 30
       });
+      
+      // Guardar fecha original para detectar cambios
+      setFechaOriginal(fechaFormateada);
     } catch (error) {
       console.error('Error al cargar cita:', error);
       toast.error('Error al cargar los datos de la cita');
@@ -117,10 +123,19 @@ const CitaForm = () => {
       ? sanitizeString(value) 
       : value;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: sanitizedValue
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: sanitizedValue
+      };
+      
+      // 🔄 Auto-marcar como Reprogramada si se cambia la fecha en modo edición
+      if (isEditMode && name === 'fecha_visita_cita' && fechaOriginal && sanitizedValue !== fechaOriginal) {
+        newData.estado_cita = 'Reprogramada';
+      }
+      
+      return newData;
+    });
 
     // ✨ Validar el campo en tiempo real (excepto select)
     if (type !== 'select-one' && type !== 'number') {

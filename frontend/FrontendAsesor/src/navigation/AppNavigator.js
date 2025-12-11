@@ -13,6 +13,8 @@ import GalleryScreen from '../screens/GalleryScreen';
 import AgendaScreen from '../screens/AgendaScreen';
 import CitaDetailScreen from '../screens/CitaDetailScreen';
 import PerfilScreen from '../screens/PerfilScreen';
+import BuscarPropiedadesScreen from '../screens/BuscarPropiedadesScreen';
+import RutaPropiedadScreen from '../screens/RutaPropiedadScreen';
 
 // Screens de mapas solo en móviles (react-native-maps no funciona en web)
 const MapScreen = Platform.OS !== 'web' ? require('../screens/MapScreen').default : null;
@@ -33,16 +35,10 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
-          // Auth Stack
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
-          // App Stack
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Camera" component={CameraScreen} />
@@ -51,6 +47,21 @@ export default function AppNavigator() {
             <Stack.Screen name="Agenda" component={AgendaScreen} />
             <Stack.Screen name="CitaDetail" component={CitaDetailScreen} />
             <Stack.Screen name="Perfil" component={PerfilScreen} />
+
+            {/* NUEVAS PANTALLAS */}
+            <Stack.Screen
+              name="BuscarPropiedades"
+              component={BuscarPropiedadesScreen}
+            />
+
+            {Platform.OS !== 'web' && (
+              <Stack.Screen
+                name="RutaPropiedad"
+                component={RutaPropiedadScreen}
+              />
+            )}
+
+            {/* Tus pantallas existentes de mapas */}
             {Platform.OS !== 'web' && MapScreen && (
               <Stack.Screen name="Map" component={MapScreen} />
             )}

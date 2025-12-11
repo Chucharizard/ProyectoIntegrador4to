@@ -27,13 +27,16 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.inmobiliaria.asesores",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
-        "CAMERA",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ]
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "useNextNotificationsApi": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -51,7 +54,15 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Permite a la app acceder a tu ubicación para agregar coordenadas GPS a las fotos"
         }
+      ],
+      [
+        "expo-notifications"
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "94ef5848-637f-4767-a97a-35569fe86596"
+      }
+    }
   }
 }

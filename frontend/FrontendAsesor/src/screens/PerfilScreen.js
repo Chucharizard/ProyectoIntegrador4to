@@ -207,7 +207,7 @@ export default function PerfilScreen({ navigation }) {
                 <Text style={styles.menuIcon}>ℹ️</Text>
                 <Text style={styles.menuText}>Versión</Text>
               </View>
-              <Text style={styles.menuValue}>1.0.0</Text>
+              <Text style={styles.menuValue}>3.0.0</Text>
             </View>
 
             <View style={styles.divider} />
@@ -215,9 +215,9 @@ export default function PerfilScreen({ navigation }) {
             <View style={styles.menuItem}>
               <View style={styles.menuItemLeft}>
                 <Text style={styles.menuIcon}>🏢</Text>
-                <Text style={styles.menuText}>Inmobiliaria App</Text>
+                <Text style={styles.menuText}>Inmobiliaria Movil</Text>
               </View>
-              <Text style={styles.menuValue}>Admin</Text>
+              <Text style={styles.menuValue}>Oficial</Text>
             </View>
           </View>
 

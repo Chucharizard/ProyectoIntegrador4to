@@ -23,6 +23,10 @@ import {
   deleteCredentials,
   authenticateWithBiometrics,
 } from '../services/biometricAuth';
+import {
+  registrarNotificaciones,
+  enviarTokenAlBackend,
+} from '../services/notificationService';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -38,6 +42,7 @@ export default function LoginScreen({ navigation }) {
   useEffect(() => {
     checkBiometricAvailability();
   }, []);
+  
 
   const checkBiometricAvailability = async () => {
     const available = await isBiometricAvailable();
@@ -84,6 +89,17 @@ export default function LoginScreen({ navigation }) {
         if (saved) {
           setHasCredentials(true);
         }
+      }
+      
+      // 🔔 Registrar para notificaciones push
+      try {
+        const token = await registrarNotificaciones();
+        if (token) {
+          await enviarTokenAlBackend(token);
+        }
+      } catch (error) {
+        console.log('Error al configurar notificaciones:', error);
+        // No mostrar error al usuario, las notificaciones no son críticas
       }
     } else {
       Alert.alert('Error', result.message);
@@ -143,7 +159,7 @@ export default function LoginScreen({ navigation }) {
               >
                 <Text style={styles.logoEmoji}>🏠</Text>
               </LinearGradient>
-              <Text style={styles.title}>Inmobiliaria App</Text>
+              <Text style={styles.title}>Inmobiliaria Movil</Text>
               <Text style={styles.subtitle}>Portal de Asesores</Text>
             </View>
 
@@ -151,12 +167,12 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.form}>
               {/* Email Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>Usuario</Text>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>📧</Text>
+                  <Text style={styles.inputIcon}>👤</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="correo@ejemplo.com"
+                    placeholder="usuario"
                     placeholderTextColor="#6b7280"
                     value={email}
                     onChangeText={setEmail}
@@ -266,7 +282,7 @@ export default function LoginScreen({ navigation }) {
 
               {/* Footer */}
               <Text style={styles.footer}>
-                Sistema de Gestión Inmobiliaria v1.0
+                Sistema de Gestión Inmobiliaria v3.0
               </Text>
             </View>
           </View>
